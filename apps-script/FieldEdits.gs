@@ -13,25 +13,30 @@
    here — they live in the enrichment tabs and are rewritten by the job.
 --------------------------------------------------------------------------- */
 
-const EDITABLE_FIELDS = {
-  Albums: {
-    reference: ALBUMS_COLS.REFERENCE,   // catalogue / pressing number
-    reactions: ALBUMS_COLS.REACTIONS,   // his listening notes
-    format: ALBUMS_COLS.FORMAT
-  },
-  Singles: {
-    reference: null,                    // Singles has no reference column in his layout
-    format: SINGLES_COLS.FORMAT
+// Column index is resolved per field so "catalogueNo" can live in a column that
+// is created on demand. A fixed allowlist keyed by name means a request can
+// never nominate an arbitrary column and reach the rest of his data.
+function editableColumnIndex(sheetName, field) {
+  if (sheetName === SHEET_ALBUMS) {
+    if (field === 'condition') return ALBUMS_COLS.REFERENCE;   // "Noisy", "crackly", "Bootleg"
+    if (field === 'notes') return ALBUMS_COLS.REACTIONS;
+    if (field === 'format') return ALBUMS_COLS.FORMAT;
+    if (field === 'catalogueNo') return albumCatalogueColumnIndex();
+    return undefined;
   }
-};
+  if (sheetName === SHEET_SINGLES) {
+    if (field === 'format') return SINGLES_COLS.FORMAT;
+    return undefined;
+  }
+  return undefined;
+}
 
 function updateField(sheetName, sourceRow, field, value) {
-  const fields = EDITABLE_FIELDS[sheetName];
-  if (!fields) throw new Error('Unsupported sheet: ' + sheetName);
-
-  const columnIndex = fields[field];
+  if (sheetName !== SHEET_ALBUMS && sheetName !== SHEET_SINGLES) {
+    throw new Error('Unsupported sheet: ' + sheetName);
+  }
+  const columnIndex = editableColumnIndex(sheetName, field);
   if (columnIndex === undefined) throw new Error('Field not editable: ' + field);
-  if (columnIndex === null) throw new Error('"' + field + '" does not exist on ' + sheetName + '.');
 
   const row = Number(sourceRow);
   const sheet = getSheet(sheetName);
@@ -41,14 +46,12 @@ function updateField(sheetName, sourceRow, field, value) {
   return { ok: true, sheetName: sheetName, sourceRow: row, field: field };
 }
 
-// The catalogue number Discogs proposed for a row, if any, so the app can offer
-// it as a starting point. Deliberately never written automatically: a catalogue
-// number identifies one specific pressing, and only Neil can see which pressing
-// is actually on his shelf.
-function getSuggestedReference(sourceRow) {
-  const row = readHelperTab(SHEET_ENRICHMENT_ALBUMS).filter(function (r) {
-    return Number(r.SourceRow) === Number(sourceRow);
-  })[0];
-  if (!row || !row.CatalogueNumber) return null;
-  return { catalogueNumber: row.CatalogueNumber, source: row.MatchSource || '', sourceUrl: row.SourceURL || '' };
-}
+/* Note on pressing numbers: the enrichment tabs do record a CatalogueNumber
+   from Discogs, because it arrives in the same response as everything else and
+   costs no extra request. It is deliberately NOT offered to Neil as a value to
+   accept. A catalogue number describes one specific pressing rather than the
+   album, so a plausible-looking suggestion would invite acceptance without
+   checking the label, and a wrong pressing number is worse than a blank one:
+   it reads as authoritative. The stored value is reference data only — useful
+   if we ever want to flag "your pressing may differ from the common one" — and
+   Neil's own Reference column is only ever written by his own typing. */

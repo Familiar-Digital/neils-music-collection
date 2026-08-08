@@ -33,31 +33,30 @@ const DETAIL = (function () {
     return rows ? '<div class="detail-meta"><dl>' + rows + '</dl></div>' : '';
   }
 
-  /* Pressing (catalogue) number. Written into Neil's own Reference column, so
-     it shows up in the spreadsheet immediately. Discogs' guess is offered as a
-     one-click fill rather than applied automatically — a catalogue number
-     identifies one specific pressing, and only the record in his hands says
-     which. The country and year are shown so he can check it against the label. */
-  function referenceEditorHtml(item, collectionKey) {
-    if (collectionKey !== 'albums') return '';
-    const current = item.reference || '';
-    const suggested = item.suggestedReference || '';
-    const canSuggest = suggested && normalizeRef(suggested) !== normalizeRef(current);
-    return '<div class="field-edit" data-row="' + item.rowNumber + '">' +
-      '<label>Pressing / catalogue number' +
-        '<input class="ref-input" type="text" value="' + esc(current) + '" placeholder="e.g. SHVL 804">' +
+  function fieldEditorHtml(item, field, label, value, hint, placeholder) {
+    return '<div class="field-edit" data-row="' + item.rowNumber + '" data-field="' + field + '">' +
+      '<label>' + esc(label) +
+        '<input class="field-input" type="text" value="' + esc(value || '') + '" placeholder="' + esc(placeholder) + '">' +
       '</label>' +
-      '<button class="btn ref-save">Save</button>' +
-      (canSuggest
-        ? '<p class="field-hint">' + esc(item.matchSource || 'Discogs') + ' suggests <button class="linkish ref-use" data-value="' +
-          esc(suggested) + '">' + esc(suggested) + '</button> — check it matches your copy.</p>'
-        : '<p class="field-hint">Written straight into the spreadsheet.</p>') +
+      '<button class="btn field-save">Save</button>' +
+      '<p class="field-hint">' + esc(hint) + '</p>' +
       '<p class="field-status"></p>' +
       '</div>';
   }
 
-  function normalizeRef(s) {
-    return String(s || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+  /* Both of these are Neil's own observations about his copy, never guessed.
+     A pressing number describes one specific pressing rather than the album
+     (Dark Side of the Moon is SHVL 804 in the UK, SHVLJ(D) 804 in South
+     Africa), so a plausible-looking suggestion would invite acceptance without
+     checking the label — and a wrong pressing number reads as authoritative in
+     a way a blank field does not. Condition is his existing annotation, kept in
+     the column he already uses for it. */
+  function referenceEditorHtml(item, collectionKey) {
+    if (collectionKey !== 'albums') return '';
+    return fieldEditorHtml(item, 'catalogueNo', 'Pressing / catalogue number', item.catalogueNo,
+        'From your own copy — written straight into the spreadsheet.', 'Read it off the label or sleeve') +
+      fieldEditorHtml(item, 'condition', 'Condition', item.condition,
+        'Your own notes, e.g. "Noisy", "Side 2 crackly".', 'How does this copy play?');
   }
 
   function render(item, collectionKey, detail) {
@@ -118,10 +117,11 @@ const DETAIL = (function () {
 
   function close() { document.getElementById('detail-overlay').hidden = true; }
 
-  async function saveReference(wrap) {
-    const input = wrap.querySelector('.ref-input');
+  async function saveField(wrap) {
+    const input = wrap.querySelector('.field-input');
     const status = wrap.querySelector('.field-status');
     const rowNumber = Number(wrap.dataset.row);
+    const field = wrap.dataset.field;
 
     if (!API.getWriteToken()) {
       status.className = 'field-status err';
@@ -132,11 +132,11 @@ const DETAIL = (function () {
     status.className = 'field-status';
     status.textContent = 'Saving…';
     try {
-      await API.updateField({ sheetName: 'Albums', sourceRow: rowNumber, field: 'reference', value: input.value });
+      await API.updateField({ sheetName: 'Albums', sourceRow: rowNumber, field: field, value: input.value });
       // Update the copy in memory so reopening the record shows the new value
       // without waiting for a full reload of the collection.
       const item = STORE.albums.filter(function (a) { return a.rowNumber === rowNumber; })[0];
-      if (item) item.reference = input.value.trim();
+      if (item) item[field] = input.value.trim();
       status.className = 'field-status ok';
       status.textContent = 'Saved to the spreadsheet.';
     } catch (err) {
@@ -149,19 +149,14 @@ const DETAIL = (function () {
     document.querySelector('[data-close-detail]').addEventListener('click', close);
 
     document.getElementById('detail-overlay').addEventListener('click', function (e) {
-      const use = e.target.closest('.ref-use');
-      if (use) {
-        e.target.closest('.field-edit').querySelector('.ref-input').value = use.dataset.value;
-        return;
-      }
-      const save = e.target.closest('.ref-save');
-      if (save) saveReference(save.closest('.field-edit'));
+      const save = e.target.closest('.field-save');
+      if (save) saveField(save.closest('.field-edit'));
     });
 
     document.getElementById('detail-overlay').addEventListener('keydown', function (e) {
-      if (e.key === 'Enter' && e.target.classList.contains('ref-input')) {
+      if (e.key === 'Enter' && e.target.classList.contains('field-input')) {
         e.preventDefault();
-        saveReference(e.target.closest('.field-edit'));
+        saveField(e.target.closest('.field-edit'));
       }
     });
     document.addEventListener('keydown', function (e) {

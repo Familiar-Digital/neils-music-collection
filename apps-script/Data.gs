@@ -19,7 +19,9 @@ function coverArtLookup(helperSheetName) {
 function getAlbums() {
   const c = ALBUMS_COLS;
   const enrichment = coverArtLookup(SHEET_ENRICHMENT_ALBUMS);
-  return readDataRows(SHEET_ALBUMS, 14, 2).map(function (r) {
+  const catalogueCol = albumCatalogueColumnIndex();
+  const width = Math.max(14, catalogueCol + 1);
+  return readDataRows(SHEET_ALBUMS, width, 2).map(function (r) {
     const v = r.values;
     const e = enrichment[r.rowNumber] || {};
     return {
@@ -27,7 +29,8 @@ function getAlbums() {
       artist: String(v[c.ARTIST] || '').trim(),
       title: String(v[c.TITLE] || '').trim(),
       format: String(v[c.FORMAT] || '').trim(),
-      reference: v[c.REFERENCE] ? String(v[c.REFERENCE]).trim() : null,
+      condition: v[c.REFERENCE] ? String(v[c.REFERENCE]).trim() : null,
+      catalogueNo: v[catalogueCol] ? String(v[catalogueCol]).trim() : null,
       dateAcquired: formatDateCell(v[c.DATE_VINYL]) || formatDateCell(v[c.DATE_CD]) || formatDateCell(v[c.DATE_DVD]),
       vinylAlbums: v[c.VINYL_ALBUMS] || null,
       vinylDiscs: v[c.VINYL_DISCS] || null,
