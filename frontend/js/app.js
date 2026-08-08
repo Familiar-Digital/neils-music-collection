@@ -177,18 +177,6 @@
     document.getElementById('gate').hidden = true;
   }
 
-  async function verifyAccess() {
-    try {
-      const access = await API.checkAccess();
-      if (!access.passwordRequired) { API.setCanWrite(access.write); return true; }
-      if (!access.read) return false;
-      API.setCanWrite(access.write);
-      return true;
-    } catch (err) {
-      return false;
-    }
-  }
-
   document.getElementById('gate-form').addEventListener('submit', async function (e) {
     e.preventDefault();
     const input = document.getElementById('gate-input');
@@ -198,73 +186,110 @@
 
     status.textContent = 'Checking…';
     API.setToken(value);
-    if (await verifyAccess()) {
+    try {
+      await loadEssentialData();          // the fetch is the check
       input.value = '';
       status.textContent = '';
-      hideGate();
       startApp();
-    } else {
+      refreshPermissions();
+      loadRemainingData().then(onRemainingLoaded).catch(function () {});
+    } catch (err) {
       API.clearToken();
-      status.textContent = 'That password was not recognised.';
+      status.textContent = /password/i.test(err.message)
+        ? 'That password was not recognised.'
+        : 'Could not reach the collection: ' + err.message;
       input.select();
     }
   });
 
-  /* ---------------- boot ---------------- */
+  /* ---------------- boot ----------------
+     Every Apps Script request costs about three seconds of fixed overhead — a
+     51-byte reply is no faster than a 250KB one — so the number of round trips
+     on the critical path is what determines how long the screen stays empty.
+
+     Asking "is this password valid?" and then asking for the data meant two
+     sequential trips, roughly seven seconds before any artwork. So permission
+     is no longer checked up front: the data request is the permission check,
+     and a refusal shows the gate. Combined with painting from cache first, the
+     common case now needs no network at all before something appears. */
   (async function boot() {
-    if (!(await verifyAccess())) {
-      showGate(API.getToken() ? 'That password is no longer valid.' : '');
-      API.clearToken();
+    const hasToken = !!API.getToken();
+
+    // No password stored: the gate needs nothing from the server.
+    if (!hasToken) { showGate(); return; }
+
+    // Anything cached paints straight away; the network copy replaces it after.
+    if (hydrateFromCache()) {
+      startApp({ silent: true });
+      refreshInBackground();
       return;
     }
-    startApp();
+
+    try {
+      await loadEssentialData();     // doubles as the password check
+      API.setCanWrite(true);         // corrected below once we know
+      startApp();
+      refreshPermissions();
+      loadRemainingData().then(onRemainingLoaded).catch(function () {});
+    } catch (err) {
+      if (/password/i.test(err.message)) {
+        API.clearToken();
+        showGate('That password is no longer valid.');
+      } else {
+        showGate('Could not reach the collection: ' + err.message);
+      }
+    }
   })();
 
-  async function startApp() {
+  // What the stored password actually permits — needed for the editing controls,
+  // but nothing on screen waits for it.
+  function refreshPermissions() {
+    API.checkAccess()
+      .then(function (access) { API.setCanWrite(access.write); ADD_FORM.refreshTokenNote(); })
+      .catch(function () {});
+  }
+
+  async function refreshInBackground() {
+    try {
+      await loadEssentialData();
+      SEARCH.buildIndices();
+      BROWSE.refresh();
+      startRotation();
+      refreshPermissions();
+      loadRemainingData().then(onRemainingLoaded).catch(function () {});
+    } catch (err) {
+      if (/password/i.test(err.message)) { API.clearToken(); showGate('That password is no longer valid.'); }
+    }
+  }
+
+  function onRemainingLoaded() {
+    BROWSE.renderCategoryLists();
+    SEARCH.buildIndices();
+    BROWSE.refresh();
+    document.getElementById('menu-stats').textContent =
+      COLLECTIONS.map(function (c) { return STORE[c.key].length.toLocaleString() + ' ' + c.label.toLowerCase(); }).join(' · ');
+  }
+
+  function startApp(options) {
     DETAIL.init();
     ADD_FORM.init();
     SUGGESTIONS_VIEW.init();
+    hideGate();
 
-    const caption = document.getElementById('home-caption');
-    caption.querySelector('.t').textContent = 'Loading the collection…';
+    BROWSE.init();
+    startRotation();
 
-    try {
-      // Anything cached from last time paints immediately; the network copy
-      // replaces it below without the user waiting on it.
-      const hadCache = hydrateFromCache();
-      if (hadCache) {
-        BROWSE.init();
-        startRotation();
-      }
+    document.getElementById('menu-stats').textContent =
+      COLLECTIONS.map(function (c) { return STORE[c.key].length.toLocaleString() + ' ' + c.label.toLowerCase(); }).join(' · ');
 
-      await loadEssentialData();
-      if (hadCache) { SEARCH.buildIndices(); BROWSE.refresh(); startRotation(); }
-      else { BROWSE.init(); startRotation(); }
+    if (window.APP_CONFIG.SPREADSHEET_URL) {
+      document.getElementById('sheet-link').href = window.APP_CONFIG.SPREADSHEET_URL;
+    } else {
+      document.getElementById('sheet-link').closest('.menu-col').hidden = true;
+    }
 
-      // Second wave: compilations and films fill in behind the scenes. The
-      // categories update in place once they land.
-      loadRemainingData().then(function () {
-        BROWSE.renderCategoryLists();
-        SEARCH.buildIndices();
-        BROWSE.refresh();
-        document.getElementById('menu-stats').textContent =
-          COLLECTIONS.map(function (c) { return STORE[c.key].length.toLocaleString() + ' ' + c.label.toLowerCase(); }).join(' · ');
-      }).catch(function () {});
-
-      document.getElementById('menu-stats').textContent =
-        COLLECTIONS.map(function (c) { return STORE[c.key].length.toLocaleString() + ' ' + c.label.toLowerCase(); }).join(' · ');
-
-      if (window.APP_CONFIG.SPREADSHEET_URL) {
-        document.getElementById('sheet-link').href = window.APP_CONFIG.SPREADSHEET_URL;
-      } else {
-        document.getElementById('sheet-link').closest('.menu-col').hidden = true;
-      }
-
-      // Surfaces the pending-suggestion count in the menu without opening the page.
+    if (!options || !options.silent) {
       loadSuggestions().then(SUGGESTIONS_VIEW.render).catch(function () {});
-    } catch (err) {
-      caption.querySelector('.t').textContent = 'Could not load the collection';
-      caption.querySelector('.a').textContent = err.message;
     }
   }
 })();

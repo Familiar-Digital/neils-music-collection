@@ -16,6 +16,7 @@ const READ_ACTIONS = {
   getSuggestions: getSuggestions,
   getWishlist: getWishlist,
   getGapStatus: getGapStatus,
+  getEverything: getEverything,
   getCompilationAlbums: getCompilationAlbums,
   listTriggers: listTriggers
 };

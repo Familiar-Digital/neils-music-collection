@@ -108,3 +108,17 @@ function getCompilationAlbums() {
     return { title: entry.title, format: entry.format, trackCount: entry.tracks.length, tracks: entry.tracks };
   });
 }
+
+
+/* Every Apps Script request carries roughly three seconds of fixed overhead —
+   a 51-byte reply costs the same as a 250KB one — so the number of round trips
+   matters far more than their size. Fetching four collections separately cost
+   three seconds each; this returns the lot in one. */
+function getEverything() {
+  return {
+    albums: getAlbums(),
+    singles: getSingles(),
+    compilations: getCompilations(),
+    dvds: getDVDs()
+  };
+}
