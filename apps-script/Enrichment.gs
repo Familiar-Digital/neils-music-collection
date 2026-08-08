@@ -72,6 +72,7 @@ function enrichAlbumRow(album) {
     SourceURL: 'https://musicbrainz.org/release-group/' + mbHit.id,
     ReleaseYear: yearFromDate(mbHit.firstReleaseDate) || '',
     Genre: mbGetGenre(mbHit.id) || '',
+    MatchSource: 'MusicBrainz',
     LastEnrichedAt: now,
     SpellingSuggestion_Artist: artistSuggestion || '',
     SpellingSuggestion_Title: titleSuggestion || '',

@@ -18,10 +18,10 @@ const HELPER_SHEET_HEADERS = {
   // original tabs (his "Date" columns record when he played a record, not when it came out).
   // The app's year/genre filters depend on these.
   Enrichment_Albums: ['SourceRow', 'Artist', 'Title', 'MB_ReleaseGroupID', 'MB_ReleaseID', 'MatchScore', 'MatchStatus',
-    'CoverArtURL', 'SourceURL', 'ReleaseYear', 'Genre', 'LastEnrichedAt',
+    'CoverArtURL', 'SourceURL', 'ReleaseYear', 'Genre', 'MatchSource', 'CatalogueNumber', 'LastEnrichedAt',
     'SpellingSuggestion_Artist', 'SpellingSuggestion_Title', 'SuggestionStatus'],
   Enrichment_Singles: ['SourceRow', 'Artist', 'Titles', 'MB_RecordingID', 'MB_ReleaseID', 'MatchScore', 'MatchStatus',
-    'CoverArtURL', 'SourceURL', 'ReleaseYear', 'Genre', 'LastEnrichedAt',
+    'CoverArtURL', 'SourceURL', 'ReleaseYear', 'Genre', 'MatchSource', 'CatalogueNumber', 'LastEnrichedAt',
     'SpellingSuggestion_Artist', 'SpellingSuggestion_Titles', 'SuggestionStatus'],
   Tracklists: ['EnrichmentKey', 'Side', 'TrackNumber', 'Title', 'LengthSeconds', 'MB_RecordingID'],
   Gap_Suggestions: ['Artist', 'MB_ArtistID', 'SuggestedAlbumTitle', 'ReleaseDate', 'MB_ReleaseGroupID', 'MatchConfidence', 'Status', 'ReviewedAt'],

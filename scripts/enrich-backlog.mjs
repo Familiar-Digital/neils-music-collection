@@ -21,7 +21,9 @@
    Options:
      --token <t>     write token (required; or set MUSIC_DB_TOKEN)
      --url <u>       web app /exec URL (defaults to frontend/config.js)
-     --contact <e>   contact for the MusicBrainz User-Agent (required by them)
+     --contact <e>   contact for the User-Agent (required by MusicBrainz)
+     --discogs <t>   Discogs personal access token; enables the fallback for
+                     records MusicBrainz cannot match (or DISCOGS_TOKEN)
      --limit <n>     stop after n records — useful for a trial run
      --only <kind>   'albums' or 'singles'
      --force         re-enrich records already done
@@ -31,6 +33,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { discogsFindRelease, discogsTracklist } from './lib/discogs.mjs';
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(HERE, '..');
@@ -55,6 +58,7 @@ function parseArgs(argv) {
     else if (a === '--token') out.token = argv[++i];
     else if (a === '--url') out.url = argv[++i];
     else if (a === '--contact') out.contact = argv[++i];
+    else if (a === '--discogs') out.discogs = argv[++i];
     else if (a === '--only') out.only = argv[++i];
     else if (a === '--limit') out.limit = Number(argv[++i]);
     else if (a === '--help' || a === '-h') out.help = true;
@@ -228,6 +232,8 @@ async function enrichAlbum(album, ua) {
       SourceURL: `https://musicbrainz.org/release-group/${hit.id}`,
       ReleaseYear: yearOf(hit['first-release-date']),
       Genre: genres.length ? titleCase(genres[0].name) : '',
+      MatchSource: 'MusicBrainz',
+      CatalogueNumber: '',
       LastEnrichedAt: new Date().toISOString(),
       SpellingSuggestion_Artist: artistFix,
       SpellingSuggestion_Title: titleFix,
@@ -274,12 +280,69 @@ async function enrichSingle(single, ua) {
       SourceURL: `https://musicbrainz.org/recording/${hit.id}`,
       ReleaseYear: yearOf(hit['first-release-date']),
       Genre: '',
+      MatchSource: 'MusicBrainz',
+      CatalogueNumber: '',
       LastEnrichedAt: new Date().toISOString(),
       SpellingSuggestion_Artist: artistFix,
       SpellingSuggestion_Titles: titleFix,
       SuggestionStatus: artistFix || titleFix ? 'Pending' : ''
     },
     tracks: null
+  };
+}
+
+/* ---------------- Discogs fallback ---------------- */
+/* Only consulted when MusicBrainz cannot place a record. Discogs has no
+   relevance score of its own, so its results must clear the same confidence
+   bar before being trusted — see scoreCandidate in lib/discogs.mjs. */
+const DISCOGS_MIN_SCORE = 78;
+
+async function tryDiscogs(item, kind, auth) {
+  const title = kind === 'album'
+    ? String(item.title || '')
+    : String(item.titles || '').split('/')[0].trim();
+
+  const found = await discogsFindRelease({
+    artistVariants: artistVariants(item.artist),
+    title,
+    auth
+  });
+  if (!found || found.score < DISCOGS_MIN_SCORE) return null;
+
+  let tracks = [];
+  if (kind === 'album') {
+    try {
+      tracks = await discogsTracklist(found.releaseId, auth);
+    } catch (err) {
+      process.stderr.write(`  Discogs tracklist failed for ${title}: ${err.message}\n`);
+    }
+  }
+
+  const artistFix = spellingSuggestion(found.score, item.artist, found.artist);
+  const titleFix = spellingSuggestion(found.score, title, found.title);
+
+  const base = {
+    SourceRow: item.rowNumber,
+    MatchScore: found.score,
+    MatchStatus: 'Enriched',
+    CoverArtURL: found.coverArtUrl,
+    SourceURL: found.sourceUrl,
+    ReleaseYear: found.year,
+    Genre: found.genre,
+    MatchSource: 'Discogs',
+    CatalogueNumber: found.catalogueNumber,
+    LastEnrichedAt: new Date().toISOString(),
+    SpellingSuggestion_Artist: artistFix,
+    SuggestionStatus: artistFix || titleFix ? 'Pending' : ''
+  };
+
+  const record = kind === 'album'
+    ? { ...base, Artist: item.artist, Title: item.title, SpellingSuggestion_Title: titleFix }
+    : { ...base, Artist: item.artist, Titles: item.titles, SpellingSuggestion_Titles: titleFix };
+
+  return {
+    record,
+    tracks: tracks.length ? { enrichmentKey: `${kind === 'album' ? 'Albums' : 'Singles'}:${item.rowNumber}`, tracks } : null
   };
 }
 
@@ -306,6 +369,8 @@ async function main() {
   if (!contact) throw new Error('Missing --contact. MusicBrainz requires a contact in the User-Agent.');
 
   const ua = `NeilsMusicDatabase/1.0 ( ${contact} )`;
+  const discogsToken = args.discogs || process.env.DISCOGS_TOKEN;
+  const discogsAuth = discogsToken ? { token: discogsToken, userAgent: ua } : null;
   const checkpoint = loadCheckpoint();
   const done = new Set(checkpoint.done);
 
@@ -335,12 +400,13 @@ async function main() {
   process.stdout.write(
     `${albums.length} albums, ${singles.length} singles. ${pending.length} to process` +
     ` (~${estimate} min at ${RATE_MS}ms/request).\n` +
+    (discogsAuth ? 'Discogs fallback enabled.\n' : 'Discogs fallback OFF (pass --discogs <token> to enable).\n') +
     (args.dryRun ? 'DRY RUN — nothing will be written.\n' : '')
   );
   if (!pending.length) { process.stdout.write('Nothing to do.\n'); return; }
 
   let batchAlbums = [], batchSingles = [], batchTracks = [];
-  let processed = 0, notFound = 0, withCover = 0, failed = 0;
+  let processed = 0, notFound = 0, withCover = 0, failed = 0, rescued = 0;
   const startedAt = Date.now();
 
   async function flush() {
@@ -363,9 +429,20 @@ async function main() {
       ? `${entry.item.artist} — ${entry.item.title}`
       : `${entry.item.artist} — ${entry.item.titles}`;
     try {
-      const result = entry.kind === 'album'
+      let result = entry.kind === 'album'
         ? await enrichAlbum(entry.item, ua)
         : await enrichSingle(entry.item, ua);
+
+      // Second opinion from Discogs when MusicBrainz can't place the record.
+      if (result.record.MatchStatus === 'NotFound' && discogsAuth) {
+        try {
+          const alt = await tryDiscogs(entry.item, entry.kind, discogsAuth);
+          if (alt) { result = alt; rescued++; }
+        } catch (err) {
+          if (/Discogs 4(01|03)/.test(err.message)) throw err; // bad token: stop, don't limp on
+          process.stderr.write(`  Discogs lookup failed for ${label}: ${err.message}\n`);
+        }
+      }
 
       if (entry.kind === 'album') batchAlbums.push(result.record); else batchSingles.push(result.record);
       if (result.tracks) batchTracks.push(result.tracks);
@@ -381,7 +458,7 @@ async function main() {
     if (processed % 10 === 0 || processed === pending.length) {
       const mins = ((Date.now() - startedAt) / 60000).toFixed(1);
       const pct = ((processed / pending.length) * 100).toFixed(0);
-      process.stdout.write(`  ${processed}/${pending.length} (${pct}%) · ${withCover} covers · ${notFound} not found · ${failed} failed · ${mins} min\n`);
+      process.stdout.write(`  ${processed}/${pending.length} (${pct}%) · ${withCover} covers · ${rescued} via Discogs · ${notFound} not found · ${failed} failed · ${mins} min\n`);
     }
     if (batchAlbums.length + batchSingles.length >= BATCH_SIZE) await flush();
   }
@@ -392,6 +469,7 @@ async function main() {
     `\nDone in ${mins} min.\n` +
     `  enriched : ${processed - notFound - failed}\n` +
     `  no match : ${notFound}\n` +
+    `  rescued  : ${rescued} (Discogs)\n` +
     `  failed   : ${failed}\n` +
     `  covers   : ${withCover}\n` +
     (args.dryRun ? '\n(dry run — nothing was written)\n' : '')
