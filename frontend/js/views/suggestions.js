@@ -22,6 +22,20 @@ const SUGGESTIONS_VIEW = (function () {
       '</div></div>';
   }
 
+  function formatHtml(f, index) {
+    const context = [f.artist, f.title].filter(Boolean).join(' — ');
+    return '<div class="suggestion">' +
+      '<div class="suggestion-body">' +
+        '<div class="suggestion-diff">' + diffLine(f.currentFormat, f.suggestedFormat) + '</div>' +
+        '<p class="suggestion-note">' + esc(context) + ' · ' + esc(f.sheetName) + ' row ' + esc(f.sourceRow) +
+          ' · used ' + esc(f.usedHere) + '× here vs ' + esc(f.usedElsewhere) + '× elsewhere</p>' +
+      '</div>' +
+      '<div class="suggestion-actions">' +
+        '<button class="btn" data-act="fmt" data-i="' + index + '">Align format</button>' +
+        '<button class="btn btn-quiet" data-act="nofmt" data-i="' + index + '">Leave it</button>' +
+      '</div></div>';
+  }
+
   function gapHtml(g, index) {
     return '<div class="suggestion">' +
       '<div class="suggestion-body">' +
@@ -38,6 +52,7 @@ const SUGGESTIONS_VIEW = (function () {
   function render() {
     const spelling = STORE.suggestions.spelling || [];
     const gaps = STORE.suggestions.gaps || [];
+    const formats = STORE.suggestions.formats || [];
 
     document.getElementById('spelling-suggestions').innerHTML =
       spelling.map(spellingHtml).join('') ||
@@ -47,8 +62,12 @@ const SUGGESTIONS_VIEW = (function () {
       gaps.map(gapHtml).join('') ||
       '<p class="empty-note">None yet. Gap analysis runs once the main enrichment backlog is clear.</p>';
 
+    document.getElementById('format-suggestions').innerHTML =
+      formats.map(formatHtml).join('') ||
+      '<p class="empty-note">No format inconsistencies found.</p>';
+
     const badge = document.getElementById('suggestion-badge');
-    const total = spelling.length + gaps.length;
+    const total = spelling.length + gaps.length + formats.length;
     badge.hidden = total === 0;
     badge.textContent = total;
   }
@@ -109,6 +128,17 @@ const SUGGESTIONS_VIEW = (function () {
           await API.approveGapSuggestion({ rowNumber: STORE.suggestions.gaps[i].rowNumber });
         } else if (act === 'nogap') {
           await API.rejectGapSuggestion({ rowNumber: STORE.suggestions.gaps[i].rowNumber });
+        } else if (act === 'fmt') {
+          const f = STORE.suggestions.formats[i];
+          await API.applyFormatFix({ sheetName: f.sheetName, sourceRow: f.sourceRow, newValue: f.suggestedFormat });
+          // The format cell changed, so reload that collection and rebuild the filters.
+          if (f.sheetName === 'Albums') STORE.albums = await API.getAlbums();
+          else STORE.singles = await API.getSingles();
+          SEARCH.buildIndices();
+          BROWSE.refresh();
+        } else if (act === 'nofmt') {
+          const f = STORE.suggestions.formats[i];
+          await API.rejectFormatFix({ sheetName: f.sheetName, sourceRow: f.sourceRow });
         }
         await refresh();
       } catch (err) {

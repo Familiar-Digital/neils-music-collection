@@ -42,6 +42,8 @@ const API = (function () {
     rejectSpellingSuggestion: function (data) { return post('rejectSpellingSuggestion', data); },
     approveGapSuggestion: function (data) { return post('approveGapSuggestion', data); },
     rejectGapSuggestion: function (data) { return post('rejectGapSuggestion', data); },
+    applyFormatFix: function (data) { return post('applyFormatFix', data); },
+    rejectFormatFix: function (data) { return post('rejectFormatFix', data); },
 
     getWriteToken: getWriteToken,
     setWriteToken: setWriteToken

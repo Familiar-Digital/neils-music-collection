@@ -3,7 +3,7 @@ const STORE = {
   singles: [],
   compilations: [],
   dvds: [],
-  suggestions: { spelling: [], gaps: [] },
+  suggestions: { spelling: [], gaps: [], formats: [] },
   wishlist: [],
   loaded: false
 };

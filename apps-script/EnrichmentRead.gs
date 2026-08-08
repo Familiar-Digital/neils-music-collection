@@ -77,7 +77,11 @@ function getSuggestions() {
         suggestedAlbumTitle: r.SuggestedAlbumTitle, releaseDate: r.ReleaseDate, confidence: r.MatchConfidence
       };
     });
-  return { spelling: albumSuggestions.concat(singleSuggestions), gaps: gapSuggestions };
+  return {
+    spelling: albumSuggestions.concat(singleSuggestions),
+    gaps: gapSuggestions,
+    formats: pendingFormatTypos()
+  };
 }
 
 function getWishlist() {
