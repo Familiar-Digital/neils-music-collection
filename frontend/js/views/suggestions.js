@@ -76,6 +76,7 @@ const SUGGESTIONS_VIEW = (function () {
     try {
       await loadSuggestions();
       render();
+      updateGapScope();
     } catch (err) {
       document.getElementById('spelling-suggestions').innerHTML =
         '<p class="empty-note">Could not load suggestions: ' + esc(err.message) + '</p>';
@@ -95,7 +96,62 @@ const SUGGESTIONS_VIEW = (function () {
     }
   }
 
+  /* The impact of the threshold is worked out locally from the collection
+     already in memory, so moving the selector gives an instant answer instead
+     of a round trip. "Various" is excluded here exactly as the backend does,
+     otherwise the count shown would not match what actually gets checked. */
+  const NOT_REAL_ARTISTS = ['various', 'various artists', 'soundtrack', 'original soundtrack', 'unknown'];
+
+  function artistsAtThreshold(threshold) {
+    const counts = {};
+    STORE.albums.forEach(function (a) {
+      if (!a.artist) return;
+      const key = a.artist.replace(/\s+/g, ' ').trim();
+      if (NOT_REAL_ARTISTS.indexOf(key.toLowerCase()) !== -1) return;
+      counts[key] = (counts[key] || 0) + 1;
+    });
+    return Object.keys(counts).filter(function (k) { return counts[k] >= threshold; }).length;
+  }
+
+  function updateGapScope() {
+    const threshold = Number(document.getElementById('gap-threshold').value);
+    const artists = artistsAtThreshold(threshold);
+    // Two MusicBrainz calls per artist at ~1.1s each.
+    const minutes = Math.max(1, Math.round((artists * 2 * 1.1) / 60));
+    document.getElementById('gap-scope').textContent =
+      artists + ' artist' + (artists === 1 ? '' : 's') + ' in scope — about ' + minutes + ' minute' + (minutes === 1 ? '' : 's') + ' to check.';
+  }
+
+  async function runGapAnalysis() {
+    const status = document.getElementById('gap-status');
+    const button = document.getElementById('gap-run');
+    if (!API.getWriteToken()) {
+      status.className = 'field-status err';
+      status.textContent = 'Enter the write access token on the "Add new" page first.';
+      return;
+    }
+    button.disabled = true;
+    status.className = 'field-status';
+    status.textContent = 'Checking…  this keeps going in the background if it takes a while.';
+    try {
+      await API.setGapThreshold({ threshold: Number(document.getElementById('gap-threshold').value) });
+      const result = await API.runGapAnalysis();
+      status.className = 'field-status ok';
+      status.textContent = result.complete
+        ? 'Finished — ' + result.pendingSuggestions + ' suggestions to review.'
+        : 'Checked ' + result.processed + ' of ' + result.artistsInScope + ' artists so far. Run again to continue.';
+      await refresh();
+    } catch (err) {
+      status.className = 'field-status err';
+      status.textContent = 'Could not run: ' + err.message;
+    }
+    button.disabled = false;
+  }
+
   function init() {
+    document.getElementById('gap-threshold').addEventListener('change', updateGapScope);
+    document.getElementById('gap-run').addEventListener('click', runGapAnalysis);
+
     document.getElementById('suggestions-view').addEventListener('click', async function (e) {
       const btn = e.target.closest('button[data-act]');
       if (!btn) return;

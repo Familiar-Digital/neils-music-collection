@@ -147,17 +147,21 @@ function artistVariants(artist) {
   return variants;
 }
 
-// True when two names contain the same words in a different order or spacing,
-// e.g. "Bowie    David" and "David Bowie". Such a difference is Neil's filing
-// convention, not a spelling mistake, so it must never become a suggestion.
+/* Two more of Neil's filing conventions that must never read as mistakes:
+   bands are filed without a leading article ("Beatles", "Animals", "Rolling
+   Stones") so they sort under B, A and R; and solo artists are surname-first.
+   Proposing "The Beatles" on all 28 Beatles records would bury everything real. */
+const withoutArticle = (s) => normalize(s).replace(/^(the|a|an) /, '');
+
 function sameWordsDifferentOrder(a, b) {
-  const wordsOf = (s) => normalize(s).split(' ').filter(Boolean).sort().join(' ');
+  const wordsOf = (s) => withoutArticle(s).split(' ').filter(Boolean).sort().join(' ');
   return wordsOf(a) === wordsOf(b);
 }
 
 function spellingSuggestion(score, current, canonical) {
   if (score < MATCH_REVIEW) return '';
   if (normalize(current) === normalize(canonical)) return '';
+  if (withoutArticle(current) === withoutArticle(canonical)) return '';
   if (sameWordsDifferentOrder(current, canonical)) return '';
   return canonical;
 }

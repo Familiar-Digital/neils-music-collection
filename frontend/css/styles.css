@@ -238,3 +238,11 @@ a{color:inherit;}
 .linkish{background:none;border:none;padding:0;cursor:pointer;font:inherit;color:var(--ink);
   text-decoration:underline;text-underline-offset:3px;}
 .linkish:hover{color:var(--grey);}
+
+/* ---------- gap analysis control ---------- */
+.gap-control{border:1px solid var(--rule);border-radius:14px;padding:1.1rem 1.3rem;margin-bottom:2rem;
+  display:flex;align-items:center;gap:1rem;flex-wrap:wrap;}
+.gap-control label{font-size:.88rem;color:var(--ink);display:flex;align-items:center;gap:.5rem;}
+.gap-control select{border:1px solid var(--rule);border-radius:8px;padding:.3rem .5rem;
+  font-family:var(--font-sans);font-size:.9rem;background:none;color:var(--ink);}
+.gap-scope{flex-basis:100%;font-size:.78rem;color:var(--grey);margin:0;}

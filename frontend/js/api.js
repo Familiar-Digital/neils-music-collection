@@ -34,6 +34,7 @@ const API = (function () {
     getSingleDetail: function (rowNumber) { return get('getSingleDetail', { rowNumber: rowNumber }); },
     getSuggestions: function () { return get('getSuggestions'); },
     getWishlist: function () { return get('getWishlist'); },
+    getGapStatus: function () { return get('getGapStatus'); },
 
     addAlbum: function (data) { return post('addAlbum', data); },
     addSingle: function (data) { return post('addSingle', data); },
@@ -45,6 +46,8 @@ const API = (function () {
     applyFormatFix: function (data) { return post('applyFormatFix', data); },
     rejectFormatFix: function (data) { return post('rejectFormatFix', data); },
     updateField: function (data) { return post('updateField', data); },
+    setGapThreshold: function (data) { return post('setGapThreshold', data); },
+    runGapAnalysis: function () { return post('runGapAnalysis', {}); },
 
     getWriteToken: getWriteToken,
     setWriteToken: setWriteToken

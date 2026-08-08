@@ -14,7 +14,8 @@ const READ_ACTIONS = {
   getAlbumDetail: function (params) { return getAlbumDetail(Number(params.rowNumber)); },
   getSingleDetail: function (params) { return getSingleDetail(Number(params.rowNumber)); },
   getSuggestions: getSuggestions,
-  getWishlist: getWishlist
+  getWishlist: getWishlist,
+  getGapStatus: getGapStatus
 };
 
 function doGet(e) {
@@ -41,7 +42,9 @@ const WRITE_ACTIONS = {
   applyFormatFix: function (data) { applyFormatFix(data.sheetName, Number(data.sourceRow), data.newValue); return { ok: true }; },
   rejectFormatFix: function (data) { rejectFormatFix(data.sheetName, Number(data.sourceRow)); return { ok: true }; },
   bulkImportEnrichment: function (data) { return bulkImportEnrichment(data); },
-  updateField: function (data) { return updateField(data.sheetName, data.sourceRow, data.field, data.value); }
+  updateField: function (data) { return updateField(data.sheetName, data.sourceRow, data.field, data.value); },
+  setGapThreshold: function (data) { return setGapThreshold(data.threshold); },
+  runGapAnalysis: function () { runGapAnalysisBatch(); return getGapStatus(); }
 };
 
 function doPost(e) {

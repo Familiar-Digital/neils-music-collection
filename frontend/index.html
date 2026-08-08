@@ -85,7 +85,25 @@
   </section>
   <section class="section bordered">
     <h2 class="section-head">Missing opportunities</h2>
-    <p class="section-sub">Studio albums by artists in the collection that aren't here yet.</p>
+    <p class="section-sub">Studio albums by artists you collect that aren't here yet.</p>
+
+    <div class="gap-control">
+      <label>Only check artists I own at least
+        <select id="gap-threshold">
+          <option value="2">2</option>
+          <option value="3" selected>3</option>
+          <option value="4">4</option>
+          <option value="5">5</option>
+          <option value="8">8</option>
+          <option value="1">1 (everything)</option>
+        </select>
+        albums by
+      </label>
+      <button class="btn" id="gap-run">Find missing albums</button>
+      <p class="gap-scope" id="gap-scope"></p>
+      <p class="field-status" id="gap-status"></p>
+    </div>
+
     <div class="suggestions-list" id="gap-suggestions"></div>
   </section>
 </main>

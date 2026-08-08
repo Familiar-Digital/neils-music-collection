@@ -12,10 +12,29 @@ function classifyMatch(score) {
   return 'NotFound';
 }
 
-// Only suggest a spelling fix when we're confident in the match AND the strings genuinely differ.
+// Neil files bands without a leading article — "Beatles", "Animals", "Rolling
+// Stones" — so they sort under B, A and R rather than all under T. That is the
+// same deliberate cataloguing choice as his surname-first artists, and there are
+// dozens of them; proposing "The Beatles" on every one would bury the real
+// suggestions. Compare with the article removed.
+function withoutLeadingArticle(value) {
+  return normalizeForCompare(value).replace(/^(the|a|an) /, '');
+}
+
+// A name differing only in word order or spacing is his filing convention too
+// ("Bowie    David" vs "David Bowie"), not a misspelling.
+function sameWordsRegardlessOfOrder(a, b) {
+  const words = function (s) { return withoutLeadingArticle(s).split(' ').filter(Boolean).sort().join(' '); };
+  return words(a) === words(b);
+}
+
+// Only suggest a spelling fix when we're confident in the match AND the strings
+// genuinely differ in a way that isn't just how Neil chooses to file things.
 function spellingSuggestionFrom(score, currentValue, canonicalValue) {
   if (score < MATCH_REVIEW_THRESHOLD) return null;
   if (normalizeForCompare(currentValue) === normalizeForCompare(canonicalValue)) return null;
+  if (withoutLeadingArticle(currentValue) === withoutLeadingArticle(canonicalValue)) return null;
+  if (sameWordsRegardlessOfOrder(currentValue, canonicalValue)) return null;
   return canonicalValue;
 }
 
