@@ -141,8 +141,8 @@
         <label>Artist <input name="artist" required></label>
         <label>Title <input name="title" required></label>
         <label>Format <input name="format" placeholder="Vinyl, Vinyl Double, CD…" required></label>
-        <label>Reference <input name="reference" placeholder="Optional"></label>
         <label>Date acquired <input name="dateAcquired" type="date"></label>
+        <label>Date played <input name="sheetDate" type="date"></label>
         <button type="submit">Add album</button>
         <p class="form-status"></p>
       </form>
@@ -152,7 +152,7 @@
         <label>Artist <input name="artist" required></label>
         <label>Titles <input name="titles" placeholder="A-side / B-side" required></label>
         <label>Format <input name="format" value="Single"></label>
-        <label>Date acquired <input name="dateAcquired" type="date"></label>
+        <label>Date played <input name="dateAcquired" type="date"></label>
         <button type="submit">Add single</button>
         <p class="form-status"></p>
       </form>
@@ -161,7 +161,7 @@
         <h3>DVD</h3>
         <label>Title <input name="title" required></label>
         <label>Format <input name="format" value="DVD"></label>
-        <label>Date acquired <input name="dateAcquired" type="date"></label>
+        <label>Date played <input name="dateAcquired" type="date"></label>
         <button type="submit">Add DVD</button>
         <p class="form-status"></p>
       </form>
@@ -174,6 +174,22 @@
       <button class="btn" id="save-token-btn">Use this password</button>
       <p class="token-note" id="token-note"></p>
     </div>
+  </section>
+</main>
+
+<!-- ============ STATISTICS ============ -->
+<main class="page" id="stats-view">
+  <header class="topbar">
+    <button class="menu-btn" data-open-menu>
+      <span class="bars"><span></span><span></span></span><span class="txt">Menu</span>
+    </button>
+    <h1 class="wordmark"><button class="wordmark-btn" data-go-home>NW</button></h1>
+    <span></span>
+  </header>
+  <section class="section">
+    <h2 class="section-head">The collection in numbers</h2>
+    <p class="section-sub" id="stats-sub"></p>
+    <div id="stats-body"></div>
   </section>
 </main>
 
@@ -213,6 +229,7 @@
         <li><button data-nav="add">Add new</button></li>
         <li><button data-nav="suggestions">Suggestions <span class="badge" id="suggestion-badge" hidden>0</span></button></li>
         <li><button data-nav="wishlist">Wishlist</button></li>
+        <li><button data-nav="stats">Statistics</button></li>
       </ul>
     </div>
     <div class="menu-col">
@@ -264,6 +281,7 @@
 <script src="js/views/albumDetail.js"></script>
 <script src="js/views/addForm.js"></script>
 <script src="js/views/suggestions.js"></script>
+<script src="js/views/stats.js"></script>
 <script src="js/app.js"></script>
 </body>
 </html>

@@ -48,6 +48,7 @@ const API = (function () {
     getSuggestions: function () { return get('getSuggestions'); },
     getWishlist: function () { return get('getWishlist'); },
     getGapStatus: function () { return get('getGapStatus'); },
+    getCompilationAlbums: function () { return get('getCompilationAlbums'); },
 
     addAlbum: function (data) { return post('addAlbum', data); },
     addSingle: function (data) { return post('addSingle', data); },
@@ -59,6 +60,8 @@ const API = (function () {
     applyFormatFix: function (data) { return post('applyFormatFix', data); },
     rejectFormatFix: function (data) { return post('rejectFormatFix', data); },
     updateField: function (data) { return post('updateField', data); },
+    markPlayed: function (data) { return post('markPlayed', data); },
+    reEnrich: function (data) { return post('reEnrich', data); },
     setGapThreshold: function (data) { return post('setGapThreshold', data); },
     runGapAnalysis: function () { return post('runGapAnalysis', {}); },
 

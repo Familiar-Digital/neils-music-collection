@@ -1,24 +1,35 @@
 /* ---------------------------------------------------------------------------
    App-owned columns on Neil's own tabs
    ---------------------------------------------------------------------------
-   Pressing numbers belong beside the record, not in a separate tab, so this
-   adds a column to the Albums sheet. Two rules make that safe:
+   Some things the app needs a home for don't exist in his layout. Rather than
+   reinterpret a column he already uses, each gets a new one, APPENDED after
+   everything in use. Two rules make that safe:
 
-   1. The column is APPENDED after everything already in use. Inserting one
-      would shift every column to its right, and his "Album Details" sheet
-      pulls from fixed positions — it would silently start showing the wrong
-      field.
-   2. The position is resolved by looking up the header text at runtime rather
-      than hard-coding an index, so if he moves or renames things by hand the
-      code finds it again instead of writing into whatever now sits there.
+   1. Append, never insert. Inserting shifts every column to the right, and his
+      "Album Details" sheet pulls from fixed positions — it would silently start
+      showing the wrong field.
+   2. Resolve by header text at runtime, not by a hard-coded index, so if he
+      moves or renames things by hand the code finds the column again instead of
+      writing into whatever now sits there.
 
-   A note on where this nearly went wrong: his "Reference" column looked like a
-   catalogue-number field and is not — it holds condition notes ("Noisy",
-   "crackly", "Bootleg", "Condition poor"). Writing pressing numbers there
-   would have overwritten annotations about damaged records.
+   Why not reuse what looks available:
+
+   - "Reference" looked like a catalogue field. It is not: it holds condition
+     notes ("Noisy", "crackly", "Bootleg"). Writing there would have overwritten
+     his annotations about damaged records.
+   - "Reactions" holds twelve dates, which looked like repeat plays. It isn't
+     that either — Neil has been watching reaction videos, so it likely records
+     those. Left strictly alone; the app neither reads nor writes it.
+   - His three "Date" columns (one per format) are ambiguous between acquired
+     and played, and only he can say which. So the app adds its own explicitly
+     named columns rather than guessing, and leaves his untouched.
 --------------------------------------------------------------------------- */
 
-const ALBUM_CATALOGUE_HEADER = 'Catalogue No';
+const APP_COLUMNS = {
+  catalogueNo: 'Catalogue No',
+  dateAcquired: 'Date Acquired',
+  lastPlayed: 'Last Played'
+};
 
 // Returns the 0-based index of a header on a sheet, or -1.
 function findHeaderIndex(sheetName, headerText) {
@@ -32,29 +43,37 @@ function findHeaderIndex(sheetName, headerText) {
   return -1;
 }
 
-// Finds the column, creating it at the far end of the sheet if absent.
-function ensureAlbumCatalogueColumn() {
-  const existing = findHeaderIndex(SHEET_ALBUMS, ALBUM_CATALOGUE_HEADER);
-  if (existing !== -1) return existing;
+// Finds an app column, creating it at the far end of the sheet if absent.
+function appColumnIndex(sheetName, key) {
+  const headerText = APP_COLUMNS[key];
+  if (!headerText) throw new Error('Unknown app column: ' + key);
 
-  const sheet = getSheet(SHEET_ALBUMS);
-  const newIndex = sheet.getLastColumn(); // 0-based index of the next free column
-  sheet.getRange(1, newIndex + 1).setValue(ALBUM_CATALOGUE_HEADER);
-  return newIndex;
-}
+  const cacheKey = 'APPCOL_' + sheetName + '_' + key;
+  const props = PropertiesService.getScriptProperties();
+  const cached = props.getProperty(cacheKey);
+  const sheet = getSheet(sheetName);
 
-function albumCatalogueColumnIndex() {
-  const cached = PropertiesService.getScriptProperties().getProperty('ALBUM_CATALOGUE_COL');
   if (cached !== null && cached !== '') {
     const index = Number(cached);
-    // Trust the cache only while the header is still where it says.
-    const sheet = getSheet(SHEET_ALBUMS);
+    // Trust the cache only while the header is still where it says it is.
     if (index < sheet.getLastColumn()) {
-      const header = String(sheet.getRange(1, index + 1).getValue()).trim();
-      if (header === ALBUM_CATALOGUE_HEADER) return index;
+      if (String(sheet.getRange(1, index + 1).getValue()).trim() === headerText) return index;
     }
   }
-  const index = ensureAlbumCatalogueColumn();
-  PropertiesService.getScriptProperties().setProperty('ALBUM_CATALOGUE_COL', String(index));
+
+  let index = findHeaderIndex(sheetName, headerText);
+  if (index === -1) {
+    index = sheet.getLastColumn();
+    sheet.getRange(1, index + 1).setValue(headerText);
+  }
+  props.setProperty(cacheKey, String(index));
   return index;
 }
+
+// Creates every app column up front so the sheet's shape settles once, rather
+// than growing the first time each feature happens to be used.
+function ensureAppColumns() {
+  Object.keys(APP_COLUMNS).forEach(function (key) { appColumnIndex(SHEET_ALBUMS, key); });
+}
+
+function albumCatalogueColumnIndex() { return appColumnIndex(SHEET_ALBUMS, 'catalogueNo'); }

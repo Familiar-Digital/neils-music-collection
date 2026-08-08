@@ -21,7 +21,9 @@ function editableColumnIndex(sheetName, field) {
     if (field === 'condition') return ALBUMS_COLS.REFERENCE;   // "Noisy", "crackly", "Bootleg"
     if (field === 'notes') return ALBUMS_COLS.REACTIONS;
     if (field === 'format') return ALBUMS_COLS.FORMAT;
-    if (field === 'catalogueNo') return albumCatalogueColumnIndex();
+    if (field === 'catalogueNo') return appColumnIndex(SHEET_ALBUMS, 'catalogueNo');
+    if (field === 'dateAcquired') return appColumnIndex(SHEET_ALBUMS, 'dateAcquired');
+    if (field === 'lastPlayed') return appColumnIndex(SHEET_ALBUMS, 'lastPlayed');
     return undefined;
   }
   if (sheetName === SHEET_SINGLES) {
@@ -55,3 +57,14 @@ function updateField(sheetName, sourceRow, field, value) {
    it reads as authoritative. The stored value is reference data only — useful
    if we ever want to flag "your pressing may differ from the common one" — and
    Neil's own Reference column is only ever written by his own typing. */
+
+
+/* "Played today" — the thing Neil has been doing by hand for two years, given a
+   button. Stamps today's date in the app's own Last Played column; his existing
+   date columns are left alone because only he knows whether they mean acquired
+   or played. */
+function markPlayed(sheetName, sourceRow, dateValue) {
+  if (sheetName !== SHEET_ALBUMS) throw new Error('Only albums can be marked as played for now.');
+  const when = dateValue ? String(dateValue) : Utilities.formatDate(new Date(), Session.getScriptTimeZone(), 'yyyy-MM-dd');
+  return updateField(sheetName, sourceRow, 'lastPlayed', when);
+}

@@ -1,5 +1,5 @@
 (function () {
-  const VIEWS = ['browse', 'suggestions', 'add', 'wishlist'];
+  const VIEWS = ['browse', 'suggestions', 'add', 'wishlist', 'stats'];
 
   /* ---------------- routing ---------------- */
   function showHome() {
@@ -17,6 +17,7 @@
     if (name === 'suggestions') SUGGESTIONS_VIEW.refresh();
     if (name === 'wishlist') SUGGESTIONS_VIEW.renderWishlist();
     if (name === 'add') ADD_FORM.refreshTokenNote();
+    if (name === 'stats') STATS.render();
   }
 
   /* ---------------- overlays ---------------- */

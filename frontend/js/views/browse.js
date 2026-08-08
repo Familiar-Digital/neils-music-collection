@@ -12,19 +12,37 @@ const BROWSE = (function () {
     const meta = collectionMeta(collectionKey);
     const title = titleOf(item, collectionKey);
     const artist = meta.hasArtist ? item.artist : '';
-    const label = [tidyFormat(item.format), item.releaseYear].filter(Boolean).join(' · ');
+    const label = item.tracks
+      ? tidyFormat(item.format) + ' · ' + item.tracks.length + ' track' + (item.tracks.length === 1 ? '' : 's')
+      : [tidyFormat(item.format), item.releaseYear].filter(Boolean).join(' · ');
     const art = item.coverArtUrl
       ? '<img src="' + escapeHtml(item.coverArtUrl) + '" alt="" loading="lazy">'
       : '<span class="no-art">No cover<br>found</span>';
-    return '<button type="button" class="card" data-row="' + item.rowNumber + '" data-collection="' + collectionKey + '">' +
+    const artistLine = item.tracks ? '' : artist;
+    return '<button type="button" class="card" data-row="' + escapeHtml(item.rowNumber) + '" data-collection="' + collectionKey + '">' +
       '<span class="card-art">' + art + '</span>' +
       (label ? '<span class="card-label">' + escapeHtml(label) + '</span>' : '') +
       '<span class="card-title">' + escapeHtml(title) + '</span>' +
-      (artist ? '<span class="card-artist">' + escapeHtml(artist) + '</span>' : '') +
+      (artistLine ? '<span class="card-artist">' + escapeHtml(artistLine) + '</span>' : '') +
       '</button>';
   }
 
-  function itemsInCollection() { return STORE[currentCollection]; }
+  /* The compilations tab is 2,916 individual tracks. Shown flat it is unusable,
+     so it is grouped into the compilation albums they belong to — the question
+     people actually ask is "what's on Now 52", not "list every track". */
+  function compilationAlbums() {
+    const byAlbum = {};
+    STORE.compilations.forEach(function (t) {
+      const album = (t.albumTitle || 'Unfiled').replace(/\s+/g, ' ').trim();
+      if (!byAlbum[album]) byAlbum[album] = { rowNumber: 'comp:' + album, title: album, format: t.format, tracks: [] };
+      byAlbum[album].tracks.push(t);
+    });
+    return Object.keys(byAlbum).sort().map(function (k) { return byAlbum[k]; });
+  }
+
+  function itemsInCollection() {
+    return currentCollection === 'compilations' ? compilationAlbums() : STORE[currentCollection];
+  }
 
   function renderParents() {
     document.getElementById('parent-row').innerHTML =

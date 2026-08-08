@@ -15,7 +15,8 @@ const READ_ACTIONS = {
   getSingleDetail: function (params) { return getSingleDetail(Number(params.rowNumber)); },
   getSuggestions: getSuggestions,
   getWishlist: getWishlist,
-  getGapStatus: getGapStatus
+  getGapStatus: getGapStatus,
+  getCompilationAlbums: getCompilationAlbums
 };
 
 function doGet(e) {
@@ -49,6 +50,8 @@ const WRITE_ACTIONS = {
   bulkImportEnrichment: function (data) { return bulkImportEnrichment(data); },
   updateField: function (data) { return updateField(data.sheetName, data.sourceRow, data.field, data.value); },
   setGapThreshold: function (data) { return setGapThreshold(data.threshold); },
+  markPlayed: function (data) { return markPlayed(data.sheetName, Number(data.sourceRow), data.date); },
+  reEnrich: function (data) { return reEnrichRow(data.sheetName, Number(data.sourceRow)); },
   runGapAnalysis: function () { runGapAnalysisBatch(); return getGapStatus(); }
 };
 

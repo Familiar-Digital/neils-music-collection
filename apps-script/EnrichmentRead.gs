@@ -87,3 +87,24 @@ function getSuggestions() {
 function getWishlist() {
   return readHelperTab(SHEET_WISHLIST);
 }
+
+/* ---------------------------------------------------------------------------
+   Compilations
+   ---------------------------------------------------------------------------
+   The largest tab by far — 2,916 tracks — and the least useful as a flat list.
+   What it actually answers is two questions: what is on this compilation, and
+   which compilations feature this artist. Both are grouped here rather than in
+   the browser so the app doesn't have to reshape 3,000 rows on every load.
+--------------------------------------------------------------------------- */
+function getCompilationAlbums() {
+  const byAlbum = {};
+  getCompilations().forEach(function (t) {
+    const album = (t.albumTitle || 'Unfiled').replace(/\s+/g, ' ').trim();
+    if (!byAlbum[album]) byAlbum[album] = { title: album, format: t.format, tracks: [] };
+    byAlbum[album].tracks.push({ artist: t.artist, title: t.title, rowNumber: t.rowNumber });
+  });
+  return Object.keys(byAlbum).sort().map(function (key) {
+    const entry = byAlbum[key];
+    return { title: entry.title, format: entry.format, trackCount: entry.tracks.length, tracks: entry.tracks };
+  });
+}

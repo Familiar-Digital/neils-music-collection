@@ -210,3 +210,23 @@ function resetEnrichment() {
 function installEnrichmentTrigger() {
   ScriptApp.newTrigger('runEnrichmentBatch').timeBased().everyMinutes(15).create();
 }
+
+/* Re-fetches one record from scratch. Needed because enrichment is skipped for
+   anything already Enriched or NotFound: without this, a wrong match or a
+   title Neil later corrects would keep its stale artwork forever. */
+function reEnrichRow(sheetName, sourceRow) {
+  const helperSheet = sheetName === SHEET_ALBUMS ? SHEET_ENRICHMENT_ALBUMS : SHEET_ENRICHMENT_SINGLES;
+  const existing = getEnrichmentRow(sheetName, sourceRow);
+  if (existing) {
+    setHelperCell(helperSheet, existing.rowNumber, 'MatchStatus', 'Pending');
+  }
+  enrichOnDemand(sheetName, sourceRow);
+  const refreshed = getEnrichmentRow(sheetName, sourceRow);
+  return {
+    ok: true,
+    matchStatus: refreshed ? refreshed.MatchStatus : 'NotFound',
+    coverArtUrl: refreshed ? refreshed.CoverArtURL : '',
+    releaseYear: refreshed ? refreshed.ReleaseYear : '',
+    genre: refreshed ? refreshed.Genre : ''
+  };
+}

@@ -56,6 +56,7 @@ function ensureHelperTabsExist() {
 // Safe to re-run — it won't regenerate an existing token.
 function runInitialSetup() {
   ensureHelperTabsExist();
+  ensureAppColumns();
 
   const props = PropertiesService.getScriptProperties();
 

@@ -19,8 +19,12 @@ function coverArtLookup(helperSheetName) {
 function getAlbums() {
   const c = ALBUMS_COLS;
   const enrichment = coverArtLookup(SHEET_ENRICHMENT_ALBUMS);
-  const catalogueCol = albumCatalogueColumnIndex();
-  const width = Math.max(14, catalogueCol + 1);
+  const cols = {
+    catalogueNo: appColumnIndex(SHEET_ALBUMS, 'catalogueNo'),
+    dateAcquired: appColumnIndex(SHEET_ALBUMS, 'dateAcquired'),
+    lastPlayed: appColumnIndex(SHEET_ALBUMS, 'lastPlayed')
+  };
+  const width = Math.max(14, cols.catalogueNo + 1, cols.dateAcquired + 1, cols.lastPlayed + 1);
   return readDataRows(SHEET_ALBUMS, width, 2).map(function (r) {
     const v = r.values;
     const e = enrichment[r.rowNumber] || {};
@@ -30,8 +34,10 @@ function getAlbums() {
       title: String(v[c.TITLE] || '').trim(),
       format: String(v[c.FORMAT] || '').trim(),
       condition: v[c.REFERENCE] ? String(v[c.REFERENCE]).trim() : null,
-      catalogueNo: v[catalogueCol] ? String(v[catalogueCol]).trim() : null,
-      dateAcquired: formatDateCell(v[c.DATE_VINYL]) || formatDateCell(v[c.DATE_CD]) || formatDateCell(v[c.DATE_DVD]),
+      catalogueNo: v[cols.catalogueNo] ? String(v[cols.catalogueNo]).trim() : null,
+      dateAcquired: formatDateCell(v[cols.dateAcquired]),
+      lastPlayed: formatDateCell(v[cols.lastPlayed]),
+      sheetDate: formatDateCell(v[c.DATE_VINYL]) || formatDateCell(v[c.DATE_CD]) || formatDateCell(v[c.DATE_DVD]),
       vinylAlbums: v[c.VINYL_ALBUMS] || null,
       vinylDiscs: v[c.VINYL_DISCS] || null,
       cdCount: v[c.CD] || null,
@@ -119,7 +125,7 @@ function appendAlbum(data) {
   row[c.TITLE] = data.title || '';
   row[c.FORMAT] = data.format || '';
   row[c.REFERENCE] = data.reference || '';
-  row[c.DATE_VINYL] = data.dateAcquired || '';
+  row[c.DATE_VINYL] = data.sheetDate || '';
   const rowNumber = appendRow(SHEET_ALBUMS, row);
   enrichOnDemand(SHEET_ALBUMS, rowNumber);
   return { duplicate: false, rowNumber: rowNumber };
