@@ -39,11 +39,24 @@ const SEARCH = (function () {
 
   function applyFilters(items, filters) {
     return items.filter(function (item) {
-      if (filters.format && tidyFormat(item.format) !== filters.format) return false;
+      if (filters.format && formatGroup(item.format) !== filters.format) return false;
       if (filters.decade && releaseDecade(item) !== filters.decade) return false;
       if (filters.genre && item.genre !== filters.genre) return false;
       return true;
     });
+  }
+
+  /* The commonest values only. Genre has a long tail of one-off tags that
+     would double the height of the filter row for no practical benefit. */
+  function topValues(items, fn, limit) {
+    const counts = {};
+    items.forEach(function (i) {
+      const v = fn(i);
+      if (v) counts[v] = (counts[v] || 0) + 1;
+    });
+    return Object.keys(counts)
+      .sort(function (a, b) { return counts[b] - counts[a] || a.localeCompare(b); })
+      .slice(0, limit);
   }
 
   function distinct(items, fn) {
@@ -51,5 +64,5 @@ const SEARCH = (function () {
     return Array.from(set).sort();
   }
 
-  return { buildIndices, searchCollection, searchEverything, applyFilters, distinct };
+  return { buildIndices, searchCollection, searchEverything, applyFilters, distinct, topValues };
 })();

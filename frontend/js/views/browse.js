@@ -60,8 +60,8 @@ const BROWSE = (function () {
     const pool = itemsInCollection();
     const groups = [
       { key: 'decade', label: 'Decade', values: SEARCH.distinct(pool, releaseDecade) },
-      { key: 'genre',  label: 'Genre',  values: SEARCH.distinct(pool, function (i) { return i.genre; }) },
-      { key: 'format', label: 'Format', values: SEARCH.distinct(pool, function (i) { return tidyFormat(i.format); }) }
+      { key: 'genre',  label: 'Genre',  values: SEARCH.topValues(pool, function (i) { return i.genre; }, 8) },
+      { key: 'format', label: 'Format', values: SEARCH.distinct(pool, function (i) { return formatGroup(i.format); }) }
     ].filter(function (g) { return g.values.length > 1; });
 
     const row = document.getElementById('child-row');
@@ -146,6 +146,6 @@ const BROWSE = (function () {
     });
   }
 
-  return { init, refresh, renderRecent, setCollection, cardHtml, escapeHtml,
+  return { init, refresh, renderRecent, setCollection, cardHtml, escapeHtml, renderCategoryLists,
     get currentCollection() { return currentCollection; } };
 })();

@@ -100,16 +100,17 @@ a{color:inherit;}
 .chip.active{background:var(--ink);border-color:var(--ink);color:#fff;}
 
 /* ---------- grid ---------- */
-.grid{display:grid;grid-template-columns:repeat(4,1fr);gap:2.8rem 2rem;}
-.card{background:none;border:none;padding:0;cursor:pointer;text-align:left;display:block;width:100%;}
-.card-art{aspect-ratio:1;background:var(--grey-light);overflow:hidden;margin-bottom:.9rem;
-  display:flex;align-items:center;justify-content:center;}
+.grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:2.8rem 2rem;}
+.card{background:none;border:none;padding:0;cursor:pointer;text-align:left;display:block;width:100%;min-width:0;}
+.card-art{display:flex;aspect-ratio:1;background:var(--grey-light);overflow:hidden;margin-bottom:.9rem;
+  align-items:center;justify-content:center;}
 .card-art img{width:100%;height:100%;object-fit:cover;display:block;transition:transform .5s ease;}
 .card:hover .card-art img{transform:scale(1.03);}
 .no-art{font-size:.66rem;letter-spacing:.08em;text-transform:uppercase;color:var(--grey-mid);text-align:center;padding:0 1rem;line-height:1.5;}
-.card-label{font-size:.68rem;letter-spacing:.09em;text-transform:uppercase;color:var(--grey);margin:0 0 .28rem;}
-.card-title{font-size:1.1rem;font-weight:700;letter-spacing:-.02em;line-height:1.14;margin:0 0 .12rem;}
-.card-artist{font-size:.86rem;color:var(--grey);margin:0;}
+.card-label{display:block;font-size:.68rem;letter-spacing:.09em;text-transform:uppercase;color:var(--grey);margin:0 0 .28rem;}
+.card-title{display:block;font-size:1.1rem;font-weight:700;letter-spacing:-.02em;line-height:1.14;margin:0 0 .12rem;
+  overflow-wrap:anywhere;}
+.card-artist{display:block;font-size:.86rem;color:var(--grey);margin:0;overflow-wrap:anywhere;}
 .card:focus-visible{outline:2px solid var(--ink);outline-offset:6px;}
 .empty-note{color:var(--grey);font-style:italic;}
 
@@ -210,14 +211,14 @@ a{color:inherit;}
 
 /* ---------- responsive ---------- */
 @media (max-width:1100px){
-  .grid{grid-template-columns:repeat(3,1fr);}
+  .grid{grid-template-columns:repeat(3,minmax(0,1fr));}
   .add-forms{grid-template-columns:repeat(2,1fr);}
   .detail-grid{grid-template-columns:1fr;gap:2rem;}
   .detail-art{max-width:360px;}
 }
 @media (max-width:780px){
   :root{--pad:1.2rem;}
-  .grid{grid-template-columns:repeat(2,1fr);gap:2rem 1.2rem;}
+  .grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:2rem 1.2rem;}
   .menu-columns{grid-template-columns:1fr;gap:2rem;}
   .add-forms{grid-template-columns:1fr;}
   .home-caption{display:none;}
@@ -262,3 +263,23 @@ a{color:inherit;}
 .gate .btn{border-color:rgba(255,255,255,.5);color:#fff;margin-top:.8rem;align-self:flex-start;}
 .gate .btn:hover{background:#fff;color:var(--ink);}
 .gate-status{font-size:.8rem;color:#E2725B;min-height:1.2em;margin:.2rem 0 0;}
+
+/* ---------- filter rows on small screens ----------
+   Even grouped, a long genre list can outrun a phone. The row scrolls
+   sideways on its own rather than letting the page do it, which is what
+   caused the whole layout to shift horizontally. */
+.child-row{max-width:100%;}
+@media (max-width:780px){
+  .filters{padding-left:0;padding-right:0;}
+  .filter-row{padding:0 1.2rem;overflow-x:auto;flex-wrap:nowrap;justify-content:flex-start;
+    scrollbar-width:none;-webkit-overflow-scrolling:touch;}
+  .filter-row::-webkit-scrollbar{display:none;}
+  .parent{white-space:nowrap;}
+  .child-row{flex-wrap:nowrap;overflow-x:auto;justify-content:flex-start;
+    padding:1rem 1.2rem 1.1rem;scrollbar-width:none;-webkit-overflow-scrolling:touch;}
+  .child-row::-webkit-scrollbar{display:none;}
+  .chip-group{flex:none;}
+  .chip{white-space:nowrap;}
+}
+/* Nothing should ever make the page itself scroll sideways. */
+html,body{overflow-x:hidden;}

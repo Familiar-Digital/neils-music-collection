@@ -34,38 +34,78 @@
   const layers = [document.createElement('img'), document.createElement('img')];
   layers.forEach(function (l) { l.alt = ''; homeArt.appendChild(l); });
   let activeLayer = 0;
-  let lastIndex = -1;
   let rotationTimer = null;
+  let queue = [];
 
   function withArtwork() {
     return allAlbumSheetRows().concat(STORE.singles).filter(function (i) { return i.coverArtUrl; });
   }
 
-  function showOnHome(item) {
-    const next = 1 - activeLayer;
-    layers[next].src = item.coverArtUrl;
-    layers[next].classList.add('visible');
-    layers[activeLayer].classList.remove('visible');
-    activeLayer = next;
+  /* A shuffled queue rather than a random pick each time. Picking at random
+     repeats covers often — with 40 images you see a repeat within a handful of
+     turns — and merely excluding the previous one doesn't fix that. Working
+     through a shuffled queue shows every cover once before any repeats, then
+     reshuffles, which is what "random" is expected to feel like. */
+  function refillQueue(pool) {
+    const shuffled = pool.slice();
+    for (let i = shuffled.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      const tmp = shuffled[i]; shuffled[i] = shuffled[j]; shuffled[j] = tmp;
+    }
+    // Avoid the reshuffle landing on the cover already showing.
+    if (queue.lastShown && shuffled.length > 1 && shuffled[0] === queue.lastShown) {
+      shuffled.push(shuffled.shift());
+    }
+    return shuffled;
+  }
+
+  function nextItem() {
+    const pool = withArtwork();          // re-read, so covers arriving mid-session join in
+    if (!pool.length) return null;
+    if (!queue.length) queue = refillQueue(pool);
+    const item = queue.shift();
+    queue.lastShown = item;
+    return item;
+  }
+
+  function setCaption(item) {
     const caption = document.getElementById('home-caption');
     caption.querySelector('.t').textContent = item.title || item.titles || '';
     caption.querySelector('.a').textContent = [item.artist, item.releaseYear].filter(Boolean).join(' · ');
   }
 
+  /* Load the image BEFORE showing its layer. Swapping first meant the incoming
+     layer still held its previous picture while the new one downloaded, so an
+     older cover flashed back for a second before being replaced — which looked
+     like the rotation jumping backwards. */
+  function showOnHome(item) {
+    return new Promise(function (resolve) {
+      const img = new Image();
+      const done = function () {
+        const next = 1 - activeLayer;
+        layers[next].src = item.coverArtUrl;
+        layers[next].classList.add('visible');
+        layers[activeLayer].classList.remove('visible');
+        activeLayer = next;
+        setCaption(item);
+        resolve();
+      };
+      img.onload = done;
+      img.onerror = resolve;   // a missing cover shouldn't stall the rotation
+      img.src = item.coverArtUrl;
+    });
+  }
+
   function startRotation() {
-    const pool = withArtwork();
-    if (!pool.length) return; // nothing enriched yet — leave the plain background
-    function pick() {
-      let i;
-      do { i = Math.floor(Math.random() * pool.length); } while (i === lastIndex && pool.length > 1);
-      lastIndex = i;
-      return pool[i];
-    }
-    showOnHome(pick());
+    const first = nextItem();
+    if (!first) return;        // nothing enriched yet — leave the plain background
+    showOnHome(first);
     if (rotationTimer) clearInterval(rotationTimer);
-    if (!window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
-      rotationTimer = setInterval(function () { showOnHome(pick()); }, 5000);
-    }
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    rotationTimer = setInterval(function () {
+      const item = nextItem();
+      if (item) showOnHome(item);
+    }, 6000);
   }
 
   /* ---------------- search ---------------- */
@@ -189,9 +229,27 @@
     caption.querySelector('.t').textContent = 'Loading the collection…';
 
     try {
-      await loadAllData();
-      BROWSE.init();
-      startRotation();
+      // Anything cached from last time paints immediately; the network copy
+      // replaces it below without the user waiting on it.
+      const hadCache = hydrateFromCache();
+      if (hadCache) {
+        BROWSE.init();
+        startRotation();
+      }
+
+      await loadEssentialData();
+      if (hadCache) { SEARCH.buildIndices(); BROWSE.refresh(); startRotation(); }
+      else { BROWSE.init(); startRotation(); }
+
+      // Second wave: compilations and films fill in behind the scenes. The
+      // categories update in place once they land.
+      loadRemainingData().then(function () {
+        BROWSE.renderCategoryLists();
+        SEARCH.buildIndices();
+        BROWSE.refresh();
+        document.getElementById('menu-stats').textContent =
+          COLLECTIONS.map(function (c) { return STORE[c.key].length.toLocaleString() + ' ' + c.label.toLowerCase(); }).join(' · ');
+      }).catch(function () {});
 
       document.getElementById('menu-stats').textContent =
         COLLECTIONS.map(function (c) { return STORE[c.key].length.toLocaleString() + ' ' + c.label.toLowerCase(); }).join(' · ');

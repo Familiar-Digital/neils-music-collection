@@ -54,15 +54,78 @@ function titleOf(item, collectionKey) {
   return item[collectionMeta(collectionKey).titleField] || '(untitled)';
 }
 
-async function loadAllData() {
-  const [albums, singles, compilations, dvds] = await Promise.all([
-    API.getAlbums(), API.getSingles(), API.getCompilations(), API.getDVDs()
-  ]);
+/* Loaded in two waves. The home screen needs one cover to show something, but
+   waiting for everything meant a ten-second stare at a black page — most of it
+   spent on the 2,900-row compilations tab, which the home screen never touches.
+   Albums arrive first and the artwork starts immediately; the rest follows
+   while it is already rotating. */
+/* A round trip to Apps Script for 1,000 rows takes about four seconds however
+   little is asked of it, and Neil will open this often. So the last response is
+   kept locally and shown at once, with a fresh copy fetched in the background
+   and swapped in when it arrives. Opening the app then feels instant, and the
+   only cost is that the first paint can be a few minutes stale — which for a
+   record collection is no cost at all. */
+const CACHE_KEY = 'nw_collection_cache_v1';
+const CACHE_MAX_AGE_MS = 24 * 60 * 60 * 1000;
+
+function readCache() {
+  try {
+    const raw = localStorage.getItem(CACHE_KEY);
+    if (!raw) return null;
+    const cached = JSON.parse(raw);
+    if (!cached || Date.now() - cached.savedAt > CACHE_MAX_AGE_MS) return null;
+    return cached.data;
+  } catch (err) {
+    return null;
+  }
+}
+
+function writeCache() {
+  try {
+    localStorage.setItem(CACHE_KEY, JSON.stringify({
+      savedAt: Date.now(),
+      data: {
+        albums: STORE.albums.concat(STORE.musicDvds),
+        singles: STORE.singles,
+        compilations: STORE.compilations,
+        dvds: STORE.dvds
+      }
+    }));
+  } catch (err) {
+    // Quota exceeded or private browsing — the cache is an optimisation, not a
+    // requirement, so a failure here must never break loading.
+  }
+}
+
+function hydrateFromCache() {
+  const data = readCache();
+  if (!data || !data.albums) return false;
+  applyAlbumSplit(data.albums);
+  STORE.singles = data.singles || [];
+  STORE.compilations = data.compilations || [];
+  STORE.dvds = data.dvds || [];
+  STORE.fromCache = true;
+  return true;
+}
+
+async function loadEssentialData() {
+  const [albums, singles] = await Promise.all([API.getAlbums(), API.getSingles()]);
   applyAlbumSplit(albums);
   STORE.singles = singles;
+}
+
+async function loadRemainingData() {
+  const [compilations, dvds] = await Promise.all([API.getCompilations(), API.getDVDs()]);
   STORE.compilations = compilations;
   STORE.dvds = dvds;
   STORE.loaded = true;
+  STORE.fromCache = false;
+  writeCache();
+}
+
+async function loadAllData() {
+  await loadEssentialData();
+  await loadRemainingData();
 }
 
 async function loadSuggestions() {
@@ -99,6 +162,21 @@ function releaseDecade(item) {
 // runs of whitespace for display and filtering, without touching the sheet itself.
 function tidyFormat(format) {
   return String(format || '').replace(/\s+/g, ' ').trim();
+}
+
+/* Filtering on the raw format gave thirty chips — every colour of vinyl, every
+   box set variant — which overflowed the screen on a phone and was no easier to
+   use on a desktop. Grouping to the handful of things anyone actually filters by
+   leaves the exact format visible on the record itself, where it belongs. */
+function formatGroup(format) {
+  const f = tidyFormat(format);
+  if (!f) return null;
+  if (/vinyl|^lp\b/i.test(f)) return 'Vinyl';
+  if (/\bcd\b/i.test(f)) return 'CD';
+  if (/dvd|blu-?ray/i.test(f)) return 'DVD';
+  if (/single|\bep\b/i.test(f)) return 'Single / EP';
+  if (/cassette|tape/i.test(f)) return 'Cassette';
+  return 'Other';
 }
 
 /* ---------------------------------------------------------------
