@@ -1,6 +1,8 @@
 const ADD_FORM = (function () {
+  // Albums go through reloadAlbums so concert DVDs stay split out; the others
+  // are plain assignments.
   const RELOADERS = {
-    albums: function () { return API.getAlbums(); },
+    albums: null,
     singles: function () { return API.getSingles(); },
     dvds: function () { return API.getDVDs(); }
   };
@@ -45,7 +47,8 @@ const ADD_FORM = (function () {
         status.textContent = 'Added. Fetching artwork and track listing…';
         form.reset();
 
-        STORE[collectionKey] = await RELOADERS[collectionKey]();
+        if (collectionKey === 'albums') await reloadAlbums();
+        else STORE[collectionKey] = await RELOADERS[collectionKey]();
         SEARCH.buildIndices();
         BROWSE.refresh();
         status.textContent = 'Added to the collection.';

@@ -2,18 +2,49 @@ const STORE = {
   albums: [],
   singles: [],
   compilations: [],
+  musicDvds: [],
   dvds: [],
   suggestions: { spelling: [], gaps: [], formats: [] },
   wishlist: [],
   loaded: false
 };
 
+/* Two different things were both called "DVD". Neil files music in Albums
+   whatever the format and films in the DVDs tab, so the tab held Carry On
+   comedies while Albums held Pink Floyd concert films. Splitting them out means
+   a concert DVD sits with the music it belongs to, not next to Carry On Cabby.
+
+   Music DVDs are a VIEW over the Albums rows, not a separate tab — nothing
+   moves in the spreadsheet, and Neil carries on filing exactly as he does. */
 const COLLECTIONS = [
   { key: 'albums',       label: 'Albums',       titleField: 'title',  hasArtist: true  },
   { key: 'singles',      label: 'Singles',      titleField: 'titles', hasArtist: true  },
   { key: 'compilations', label: 'Compilations', titleField: 'title',  hasArtist: true  },
-  { key: 'dvds',         label: 'DVDs',         titleField: 'title',  hasArtist: false }
+  { key: 'musicDvds',    label: 'Music DVDs',   titleField: 'title',  hasArtist: true, derivedFrom: 'albums' },
+  { key: 'dvds',         label: 'Films',        titleField: 'title',  hasArtist: false }
 ];
+
+function isVideoFormat(format) {
+  return /dvd|blu-?ray|video/i.test(String(format || ''));
+}
+
+/* Concert DVDs live in the Albums tab but browse better on their own, so the
+   rows are split into two categories. Every place that reloads the Albums sheet
+   must go through here — assigning STORE.albums directly silently undoes the
+   split and dumps concert films back among the records. */
+function applyAlbumSplit(albumRows) {
+  STORE.albums = albumRows.filter(function (a) { return !isVideoFormat(a.format); });
+  STORE.musicDvds = albumRows.filter(function (a) { return isVideoFormat(a.format); });
+}
+
+// Every row from the Albums sheet, regardless of which category it browses under.
+function allAlbumSheetRows() {
+  return STORE.albums.concat(STORE.musicDvds);
+}
+
+async function reloadAlbums() {
+  applyAlbumSplit(await API.getAlbums());
+}
 
 function collectionMeta(key) {
   return COLLECTIONS.filter(function (c) { return c.key === key; })[0];
@@ -27,7 +58,7 @@ async function loadAllData() {
   const [albums, singles, compilations, dvds] = await Promise.all([
     API.getAlbums(), API.getSingles(), API.getCompilations(), API.getDVDs()
   ]);
-  STORE.albums = albums;
+  applyAlbumSplit(albums);
   STORE.singles = singles;
   STORE.compilations = compilations;
   STORE.dvds = dvds;

@@ -38,7 +38,7 @@
   let rotationTimer = null;
 
   function withArtwork() {
-    return STORE.albums.concat(STORE.singles).filter(function (i) { return i.coverArtUrl; });
+    return allAlbumSheetRows().concat(STORE.singles).filter(function (i) { return i.coverArtUrl; });
   }
 
   function showOnHome(item) {

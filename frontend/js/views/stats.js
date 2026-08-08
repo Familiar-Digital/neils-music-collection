@@ -61,15 +61,16 @@ const STATS = (function () {
   }
 
   function statCardsHtml() {
-    const albums = STORE.albums;
+    const albums = allAlbumSheetRows();
     const discs = albums.reduce(function (sum, a) { return sum + (Number(a.vinylDiscs) || 0); }, 0);
     const enriched = albums.filter(function (a) { return a.coverArtUrl; }).length;
     const played = albums.filter(function (a) { return a.lastPlayed; }).length;
     const cards = [
       ['Albums', STORE.albums.length.toLocaleString()],
+      ['Music DVDs', STORE.musicDvds.length.toLocaleString()],
       ['Singles', STORE.singles.length.toLocaleString()],
       ['Compilation tracks', STORE.compilations.length.toLocaleString()],
-      ['DVDs', STORE.dvds.length.toLocaleString()],
+      ['Films', STORE.dvds.length.toLocaleString()],
       ['Vinyl discs', discs.toLocaleString()],
       ['With artwork', enriched.toLocaleString()],
       ['Logged as played', played.toLocaleString()]
@@ -80,7 +81,7 @@ const STATS = (function () {
   }
 
   function render() {
-    const albums = STORE.albums;
+    const albums = allAlbumSheetRows();
     const artists = sortedEntries(countBy(albums, function (a) {
       return a.artist ? a.artist.replace(/\s+/g, ' ').trim() : null;
     }));
@@ -88,7 +89,7 @@ const STATS = (function () {
     const decades = decadeEntries(albums);
     const formats = groupedFormats(albums);
 
-    const total = STORE.albums.length + STORE.singles.length + STORE.compilations.length + STORE.dvds.length;
+    const total = allAlbumSheetRows().length + STORE.singles.length + STORE.compilations.length + STORE.dvds.length;
     document.getElementById('stats-sub').textContent = total.toLocaleString() + ' entries in total.';
 
     document.getElementById('stats-body').innerHTML =

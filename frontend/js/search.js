@@ -4,6 +4,7 @@ const SEARCH = (function () {
 
   const KEYS = {
     albums:       ['artist', 'title'],
+    musicDvds:    ['artist', 'title'],
     singles:      ['artist', 'titles'],
     compilations: ['artist', 'title', 'albumTitle'],
     dvds:         ['title']

@@ -52,7 +52,8 @@ const DETAIL = (function () {
      a way a blank field does not. Condition is his existing annotation, kept in
      the column he already uses for it. */
   function referenceEditorHtml(item, collectionKey) {
-    if (collectionKey !== 'albums') return '';
+    // Music DVDs are Albums rows, so they get the same editable fields.
+    if (collectionKey !== 'albums' && collectionKey !== 'musicDvds') return '';
     return '<div class="played-row">' +
         '<button class="btn played-btn" data-row="' + item.rowNumber + '">Played today</button>' +
         '<span class="played-note">' +
@@ -170,7 +171,7 @@ const DETAIL = (function () {
     // Only albums and singles have enrichment records; the others render from the sheet alone.
     let detail = null;
     try {
-      if (collectionKey === 'albums') detail = await API.getAlbumDetail(rowNumber);
+      if (collectionKey === 'albums' || collectionKey === 'musicDvds') detail = await API.getAlbumDetail(rowNumber);
       else if (collectionKey === 'singles') detail = await API.getSingleDetail(rowNumber);
     } catch (err) {
       detail = null; // fall back to sheet data rather than showing an error for a missing extra
@@ -198,7 +199,7 @@ const DETAIL = (function () {
       await API.updateField({ sheetName: 'Albums', sourceRow: rowNumber, field: field, value: input.value });
       // Update the copy in memory so reopening the record shows the new value
       // without waiting for a full reload of the collection.
-      const item = STORE.albums.filter(function (a) { return a.rowNumber === rowNumber; })[0];
+      const item = albumRow(rowNumber);
       if (item) item[field] = input.value.trim();
       status.className = 'field-status ok';
       status.textContent = 'Saved to the spreadsheet.';
@@ -206,6 +207,12 @@ const DETAIL = (function () {
       status.className = 'field-status err';
       status.textContent = 'Could not save: ' + err.message;
     }
+  }
+
+  // A row from the Albums sheet, whichever category it is being browsed under.
+  function albumRow(rowNumber) {
+    return STORE.albums.concat(STORE.musicDvds)
+      .filter(function (a) { return a.rowNumber === rowNumber; })[0];
   }
 
   async function markPlayed(button) {
@@ -217,7 +224,7 @@ const DETAIL = (function () {
     try {
       await API.markPlayed({ sheetName: 'Albums', sourceRow: rowNumber });
       const today = new Date().toISOString().slice(0, 10);
-      const item = STORE.albums.filter(function (a) { return a.rowNumber === rowNumber; })[0];
+      const item = albumRow(rowNumber);
       if (item) item.lastPlayed = today;
       note.textContent = 'Last played ' + today;
     } catch (err) {
@@ -237,7 +244,7 @@ const DETAIL = (function () {
     note.textContent = 'Looking it up again…';
     try {
       const result = await API.reEnrich({ sheetName: 'Albums', sourceRow: rowNumber });
-      const item = STORE.albums.filter(function (a) { return a.rowNumber === rowNumber; })[0];
+      const item = albumRow(rowNumber);
       if (item) {
         item.coverArtUrl = result.coverArtUrl || null;
         item.releaseYear = result.releaseYear || null;

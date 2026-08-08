@@ -104,7 +104,7 @@ const SUGGESTIONS_VIEW = (function () {
 
   function artistsAtThreshold(threshold) {
     const counts = {};
-    STORE.albums.forEach(function (a) {
+    allAlbumSheetRows().forEach(function (a) {
       if (!a.artist) return;
       const key = a.artist.replace(/\s+/g, ' ').trim();
       if (NOT_REAL_ARTISTS.indexOf(key.toLowerCase()) !== -1) return;
@@ -173,7 +173,7 @@ const SUGGESTIONS_VIEW = (function () {
             newValue: field === 'artist' ? s.suggestedArtist : s.suggestedTitle
           });
           // The sheet changed underneath us, so reload the affected collection.
-          if (s.sheetName === 'Albums') STORE.albums = await API.getAlbums();
+          if (s.sheetName === 'Albums') await reloadAlbums();
           else STORE.singles = await API.getSingles();
           SEARCH.buildIndices();
           BROWSE.refresh();
@@ -188,7 +188,7 @@ const SUGGESTIONS_VIEW = (function () {
           const f = STORE.suggestions.formats[i];
           await API.applyFormatFix({ sheetName: f.sheetName, sourceRow: f.sourceRow, newValue: f.suggestedFormat });
           // The format cell changed, so reload that collection and rebuild the filters.
-          if (f.sheetName === 'Albums') STORE.albums = await API.getAlbums();
+          if (f.sheetName === 'Albums') await reloadAlbums();
           else STORE.singles = await API.getSingles();
           SEARCH.buildIndices();
           BROWSE.refresh();
