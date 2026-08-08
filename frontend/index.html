@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Neil's Music Database</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+  <header class="topbar">
+    <h1 class="wordmark">Neil's Music Database
+      <span class="meter" aria-hidden="true"><span></span><span></span><span></span><span></span><span></span><span></span></span>
+    </h1>
+    <nav class="tabs">
+      <button class="tab-btn active" data-view="browse">Browse</button>
+      <button class="tab-btn" data-view="suggestions">Suggestions</button>
+      <button class="tab-btn" data-view="add">Add New</button>
+    </nav>
+  </header>
+
+  <main id="app">
+    <section id="browse-view" class="view">
+      <div class="controls">
+        <div class="collection-tabs">
+          <button class="collection-btn active" data-collection="albums">Albums</button>
+          <button class="collection-btn" data-collection="singles">Singles</button>
+          <button class="collection-btn" data-collection="compilations">Compilations</button>
+          <button class="collection-btn" data-collection="dvds">DVDs</button>
+        </div>
+        <input id="search-input" type="search" placeholder="Search artist or title…">
+        <select id="format-filter"><option value="">All formats</option></select>
+        <select id="decade-filter"><option value="">All decades</option></select>
+        <span id="result-count" class="result-count"></span>
+      </div>
+      <div id="results-grid" class="results-grid"></div>
+    </section>
+
+    <section id="suggestions-view" class="view hidden">
+      <h2>Spelling suggestions</h2>
+      <div id="spelling-suggestions" class="suggestions-list"></div>
+      <h2>Missing opportunities</h2>
+      <div id="gap-suggestions" class="suggestions-list"></div>
+    </section>
+
+    <section id="add-view" class="view hidden">
+      <div class="add-forms">
+        <form id="add-album-form" class="add-form">
+          <h2>Add an album</h2>
+          <input name="artist" placeholder="Artist" required>
+          <input name="title" placeholder="Title" required>
+          <input name="format" placeholder="Format (e.g. Vinyl, Vinyl Double, CD)" required>
+          <input name="reference" placeholder="Reference (optional)">
+          <input name="dateAcquired" type="date">
+          <button type="submit">Add album</button>
+          <p class="form-status"></p>
+        </form>
+        <form id="add-single-form" class="add-form">
+          <h2>Add a single</h2>
+          <input name="artist" placeholder="Artist" required>
+          <input name="titles" placeholder="A-side / B-side" required>
+          <input name="format" placeholder="Format" value="Single">
+          <input name="dateAcquired" type="date">
+          <button type="submit">Add single</button>
+          <p class="form-status"></p>
+        </form>
+        <form id="add-dvd-form" class="add-form">
+          <h2>Add a DVD</h2>
+          <input name="title" placeholder="Title" required>
+          <input name="format" placeholder="Format" value="DVD">
+          <input name="dateAcquired" type="date">
+          <button type="submit">Add DVD</button>
+          <p class="form-status"></p>
+        </form>
+      </div>
+      <div class="write-token-box">
+        <label>Write access token: <input id="write-token-input" type="password" placeholder="Ask Neil/Rich for this"></label>
+        <button id="save-token-btn">Save</button>
+      </div>
+    </section>
+  </main>
+
+  <div id="detail-modal" class="modal hidden">
+    <div class="modal-content">
+      <button id="close-modal-btn" class="close-btn">&times;</button>
+      <div id="detail-body"></div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/fuse.js@7.0.0/dist/fuse.min.js"></script>
+  <script src="config.js"></script>
+  <script src="js/api.js"></script>
+  <script src="js/state.js"></script>
+  <script src="js/search.js"></script>
+  <script src="js/views/browse.js"></script>
+  <script src="js/views/albumDetail.js"></script>
+  <script src="js/views/addForm.js"></script>
+  <script src="js/views/suggestions.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
