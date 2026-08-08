@@ -11,6 +11,20 @@
 </head>
 <body>
 
+<!-- ============ PASSWORD GATE ============ -->
+<div class="gate" id="gate" hidden>
+  <div class="gate-inner">
+    <h1 class="gate-wordmark">NW</h1>
+    <p class="gate-title">Neil's Music Database</p>
+    <form id="gate-form">
+      <label for="gate-input">Collection password</label>
+      <input id="gate-input" type="password" autocomplete="current-password" autofocus>
+      <button class="btn" type="submit">Open the collection</button>
+      <p class="gate-status" id="gate-status"></p>
+    </form>
+  </div>
+</div>
+
 <!-- ============ HOME: full-bleed rotating artwork ============ -->
 <section class="home" id="home-view">
   <div class="home-art" id="home-art"></div>
@@ -154,10 +168,10 @@
     </div>
 
     <div class="token-box">
-      <label>Write access token
-        <input id="write-token-input" type="password" placeholder="Required to save changes">
+      <label>Editor password
+        <input id="write-token-input" type="password" placeholder="Only needed if you can't save changes">
       </label>
-      <button class="btn" id="save-token-btn">Save token</button>
+      <button class="btn" id="save-token-btn">Use this password</button>
       <p class="token-note" id="token-note"></p>
     </div>
   </section>

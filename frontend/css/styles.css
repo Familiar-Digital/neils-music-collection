@@ -246,3 +246,19 @@ a{color:inherit;}
 .gap-control select{border:1px solid var(--rule);border-radius:8px;padding:.3rem .5rem;
   font-family:var(--font-sans);font-size:.9rem;background:none;color:var(--ink);}
 .gap-scope{flex-basis:100%;font-size:.78rem;color:var(--grey);margin:0;}
+
+/* ---------- password gate ---------- */
+.gate{position:fixed;inset:0;z-index:50;background:var(--ink);color:#fff;
+  display:flex;align-items:center;justify-content:center;padding:2rem;}
+.gate[hidden]{display:none;}
+.gate-inner{width:100%;max-width:340px;text-align:center;}
+.gate-wordmark{font-family:var(--font-serif);font-weight:900;font-size:2.4rem;margin:0 0 .3rem;color:#fff;}
+.gate-title{font-size:.75rem;letter-spacing:.12em;text-transform:uppercase;color:rgba(255,255,255,.55);margin:0 0 2.5rem;}
+.gate form{display:flex;flex-direction:column;gap:.7rem;text-align:left;}
+.gate label{font-size:.7rem;letter-spacing:.09em;text-transform:uppercase;color:rgba(255,255,255,.55);}
+.gate input{border:none;border-bottom:1px solid rgba(255,255,255,.3);background:none;color:#fff;
+  font-family:var(--font-sans);font-size:1.15rem;padding:.5rem 0;}
+.gate input:focus{outline:none;border-bottom-color:#fff;}
+.gate .btn{border-color:rgba(255,255,255,.5);color:#fff;margin-top:.8rem;align-self:flex-start;}
+.gate .btn:hover{background:#fff;color:var(--ink);}
+.gate-status{font-size:.8rem;color:#E2725B;min-height:1.2em;margin:.2rem 0 0;}

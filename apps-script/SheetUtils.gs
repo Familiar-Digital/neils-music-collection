@@ -58,17 +58,27 @@ function runInitialSetup() {
   ensureHelperTabsExist();
 
   const props = PropertiesService.getScriptProperties();
-  let token = props.getProperty('WRITE_TOKEN');
-  if (!token) {
-    token = Utilities.getUuid().replace(/-/g, '').slice(0, 20);
-    props.setProperty('WRITE_TOKEN', token);
-    Logger.log('Generated a new WRITE_TOKEN.');
-  } else {
-    Logger.log('WRITE_TOKEN already set — reusing it.');
+
+  function ensureToken(name) {
+    let value = props.getProperty(name);
+    if (!value) {
+      value = Utilities.getUuid().replace(/-/g, '').slice(0, 20);
+      props.setProperty(name, value);
+      Logger.log('Generated a new ' + name + '.');
+    } else {
+      Logger.log(name + ' already set — reusing it.');
+    }
+    return value;
   }
 
+  const readToken = ensureToken('READ_TOKEN');
+  const token = ensureToken('WRITE_TOKEN');
+
   Logger.log('=================================================');
-  Logger.log('WRITE TOKEN (paste into the app\'s "Add New" tab):');
+  Logger.log('COLLECTION PASSWORD — share with family, lets them browse:');
+  Logger.log(readToken);
+  Logger.log('');
+  Logger.log('EDITOR PASSWORD — keep to yourself, allows changes:');
   Logger.log(token);
   Logger.log('=================================================');
   Logger.log('Helper tabs ready: ' + Object.keys(HELPER_SHEET_HEADERS).join(', '));

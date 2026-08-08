@@ -2,23 +2,36 @@ const API = (function () {
   const baseUrl = window.APP_CONFIG.WEB_APP_URL;
 
   async function get(action, params) {
-    const query = new URLSearchParams(Object.assign({ action: action }, params || {}));
+    // Every read carries the password too, so the collection stays invisible
+    // even though the site itself sits on a public URL.
+    const query = new URLSearchParams(Object.assign({ action: action, token: getToken() }, params || {}));
     const response = await fetch(baseUrl + '?' + query.toString());
     const data = await response.json();
     if (data.error) throw new Error(data.error);
     return data;
   }
 
-  function getWriteToken() {
-    return localStorage.getItem('writeToken') || '';
+  /* One box, one password. Whether it also permits editing is decided by the
+     server, not here — a browsing password and an editor password look
+     identical, and only the backend knows which is which. */
+  function getToken() {
+    return localStorage.getItem('collectionToken') || '';
   }
 
-  function setWriteToken(token) {
-    localStorage.setItem('writeToken', token);
+  function setToken(token) {
+    localStorage.setItem('collectionToken', token);
   }
+
+  function clearToken() {
+    localStorage.removeItem('collectionToken');
+  }
+
+  let canWrite = false;
+  function setCanWrite(value) { canWrite = !!value; }
+  function getWriteToken() { return canWrite ? getToken() : ''; }
 
   async function post(action, payload) {
-    const body = Object.assign({ action: action, token: getWriteToken() }, payload || {});
+    const body = Object.assign({ action: action, token: getToken() }, payload || {});
     const response = await fetch(baseUrl, { method: 'POST', body: JSON.stringify(body) });
     const data = await response.json();
     if (data.error) throw new Error(data.error);
@@ -49,7 +62,12 @@ const API = (function () {
     setGapThreshold: function (data) { return post('setGapThreshold', data); },
     runGapAnalysis: function () { return post('runGapAnalysis', {}); },
 
+    checkAccess: function () { return get('checkAccess'); },
+    getToken: getToken,
+    setToken: setToken,
+    clearToken: clearToken,
+    setCanWrite: setCanWrite,
     getWriteToken: getWriteToken,
-    setWriteToken: setWriteToken
+    setWriteToken: setToken
   };
 })();

@@ -59,8 +59,8 @@ const ADD_FORM = (function () {
   function refreshTokenNote() {
     const note = document.getElementById('token-note');
     note.textContent = API.getWriteToken()
-      ? 'Token saved in this browser. Adding and approving changes are enabled.'
-      : 'Without a token you can browse, but not add records or approve suggestions.';
+      ? 'You can add records and approve suggestions.'
+      : 'The password you signed in with allows browsing only. Enter the editor password here to make changes.';
   }
 
   function init() {
@@ -72,9 +72,14 @@ const ADD_FORM = (function () {
     document.getElementById('save-token-btn').addEventListener('click', function () {
       const value = input.value.trim();
       if (!value) return;
-      API.setWriteToken(value);
+      // Swap to the stronger password and re-check what it permits, so the
+      // page reflects reality rather than assuming the entry worked.
+      API.setToken(value);
       input.value = '';
-      refreshTokenNote();
+      API.checkAccess().then(function (access) {
+        API.setCanWrite(access.write);
+        refreshTokenNote();
+      }).catch(function () { refreshTokenNote(); });
     });
     refreshTokenNote();
   }

@@ -369,7 +369,7 @@ async function main() {
   const url = args.url || webAppUrlFromConfig();
   const contact = args.contact || process.env.MUSIC_DB_CONTACT;
 
-  if (!token && !args.dryRun) throw new Error('Missing --token (or MUSIC_DB_TOKEN).');
+  if (!token) throw new Error('Missing --token (or MUSIC_DB_TOKEN) — needed to read the collection.');
   if (!url) throw new Error('Missing --url and could not read frontend/config.js.');
   if (!contact) throw new Error('Missing --contact. MusicBrainz requires a contact in the User-Agent.');
 
@@ -380,10 +380,15 @@ async function main() {
   const done = new Set(checkpoint.done);
 
   process.stdout.write(`Reading collection from the web app…\n`);
+  // Reads are password-protected too, so the token travels on every request.
+  const authed = (action) => `${url}?action=${action}&token=${encodeURIComponent(token || '')}`;
   const [albums, singles] = await Promise.all([
-    fetch(`${url}?action=getAlbums`).then((r) => r.json()),
-    fetch(`${url}?action=getSingles`).then((r) => r.json())
+    fetch(authed('getAlbums')).then((r) => r.json()),
+    fetch(authed('getSingles')).then((r) => r.json())
   ]);
+  if (albums.error || singles.error) {
+    throw new Error(`Could not read the collection: ${albums.error || singles.error}`);
+  }
 
   const queue = [];
   if (args.only !== 'singles') {

@@ -22,8 +22,13 @@ function doGet(e) {
   try {
     ensureHelperTabsExist();
     const action = e.parameter.action;
+    // The access check itself must answer without a valid token, otherwise the
+    // password screen has no way to tell a wrong password from a broken link.
+    if (action === 'checkAccess') return jsonOutput(checkAccess(e.parameter));
+
     const handler = READ_ACTIONS[action];
     if (!handler) return jsonError('Unknown action: ' + action);
+    requireReadAccess(e.parameter.token);
     return jsonOutput(handler(e.parameter));
   } catch (err) {
     return jsonError(err.message);

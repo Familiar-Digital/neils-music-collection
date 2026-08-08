@@ -120,8 +120,66 @@
     if (e.target.closest('.card')) closeSearch();
   });
 
+  /* ---------------- password gate ---------------- */
+  /* The site is on a public URL, so the password guards the data rather than
+     the page: every request carries it, and without it there is nothing to
+     see. One box for both passwords — the server decides whether the one
+     entered also permits editing, and the UI adapts. */
+  function showGate(message) {
+    const gate = document.getElementById('gate');
+    gate.hidden = false;
+    document.getElementById('gate-status').textContent = message || '';
+    document.getElementById('gate-input').focus();
+  }
+
+  function hideGate() {
+    document.getElementById('gate').hidden = true;
+  }
+
+  async function verifyAccess() {
+    try {
+      const access = await API.checkAccess();
+      if (!access.passwordRequired) { API.setCanWrite(access.write); return true; }
+      if (!access.read) return false;
+      API.setCanWrite(access.write);
+      return true;
+    } catch (err) {
+      return false;
+    }
+  }
+
+  document.getElementById('gate-form').addEventListener('submit', async function (e) {
+    e.preventDefault();
+    const input = document.getElementById('gate-input');
+    const status = document.getElementById('gate-status');
+    const value = input.value.trim();
+    if (!value) return;
+
+    status.textContent = 'Checking…';
+    API.setToken(value);
+    if (await verifyAccess()) {
+      input.value = '';
+      status.textContent = '';
+      hideGate();
+      startApp();
+    } else {
+      API.clearToken();
+      status.textContent = 'That password was not recognised.';
+      input.select();
+    }
+  });
+
   /* ---------------- boot ---------------- */
   (async function boot() {
+    if (!(await verifyAccess())) {
+      showGate(API.getToken() ? 'That password is no longer valid.' : '');
+      API.clearToken();
+      return;
+    }
+    startApp();
+  })();
+
+  async function startApp() {
     DETAIL.init();
     ADD_FORM.init();
     SUGGESTIONS_VIEW.init();
@@ -149,5 +207,5 @@
       caption.querySelector('.t').textContent = 'Could not load the collection';
       caption.querySelector('.a').textContent = err.message;
     }
-  })();
+  }
 })();
