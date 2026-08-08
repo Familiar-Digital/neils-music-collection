@@ -1,9 +1,15 @@
-// Builds a SourceRow -> {coverArtUrl, matchStatus} map from a helper tab in one bulk read,
-// so the browse grid can show art without one request per album/single.
+// Builds a SourceRow -> enrichment-summary map from a helper tab in one bulk read,
+// so the browse grid can show artwork, release year and genre without one request
+// per record. ReleaseYear/Genre drive the app's decade and genre filters.
 function coverArtLookup(helperSheetName) {
   const map = {};
   readHelperTab(helperSheetName).forEach(function (r) {
-    map[Number(r.SourceRow)] = { coverArtUrl: r.CoverArtURL || null, matchStatus: r.MatchStatus || null };
+    map[Number(r.SourceRow)] = {
+      coverArtUrl: r.CoverArtURL || null,
+      matchStatus: r.MatchStatus || null,
+      releaseYear: r.ReleaseYear || null,
+      genre: r.Genre || null
+    };
   });
   return map;
 }
@@ -27,7 +33,9 @@ function getAlbums() {
       dvdCount: v[c.DVD] || null,
       reactions: v[c.REACTIONS] ? String(v[c.REACTIONS]).trim() : null,
       coverArtUrl: e.coverArtUrl || null,
-      matchStatus: e.matchStatus || null
+      matchStatus: e.matchStatus || null,
+      releaseYear: e.releaseYear || null,
+      genre: e.genre || null
     };
   }).filter(function (a) { return a.artist || a.title; });
 }
@@ -45,7 +53,9 @@ function getSingles() {
       format: String(v[c.FORMAT] || '').trim(),
       date: formatDateCell(v[c.DATE]),
       coverArtUrl: e.coverArtUrl || null,
-      matchStatus: e.matchStatus || null
+      matchStatus: e.matchStatus || null,
+      releaseYear: e.releaseYear || null,
+      genre: e.genre || null
     };
   }).filter(function (s) { return s.artist || s.titles; });
 }

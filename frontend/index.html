@@ -6,98 +6,227 @@
   <title>Neil's Music Database</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter+Tight:wght@400;500;600;700&family=Playfair+Display:wght@700;900&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="css/styles.css">
 </head>
 <body>
-  <header class="topbar">
-    <h1 class="wordmark">Neil's Music Database
-      <span class="meter" aria-hidden="true"><span></span><span></span><span></span><span></span><span></span><span></span></span>
-    </h1>
-    <nav class="tabs">
-      <button class="tab-btn active" data-view="browse">Browse</button>
-      <button class="tab-btn" data-view="suggestions">Suggestions</button>
-      <button class="tab-btn" data-view="add">Add New</button>
-    </nav>
-  </header>
 
-  <main id="app">
-    <section id="browse-view" class="view">
-      <div class="controls">
-        <div class="collection-tabs">
-          <button class="collection-btn active" data-collection="albums">Albums</button>
-          <button class="collection-btn" data-collection="singles">Singles</button>
-          <button class="collection-btn" data-collection="compilations">Compilations</button>
-          <button class="collection-btn" data-collection="dvds">DVDs</button>
-        </div>
-        <input id="search-input" type="search" placeholder="Search artist or title…">
-        <select id="format-filter"><option value="">All formats</option></select>
-        <select id="decade-filter"><option value="">All decades</option></select>
-        <span id="result-count" class="result-count"></span>
-      </div>
-      <div id="results-grid" class="results-grid"></div>
-    </section>
+<!-- ============ HOME: full-bleed rotating artwork ============ -->
+<section class="home" id="home-view">
+  <div class="home-art" id="home-art"></div>
 
-    <section id="suggestions-view" class="view hidden">
-      <h2>Spelling suggestions</h2>
-      <div id="spelling-suggestions" class="suggestions-list"></div>
-      <h2>Missing opportunities</h2>
-      <div id="gap-suggestions" class="suggestions-list"></div>
-    </section>
-
-    <section id="add-view" class="view hidden">
-      <div class="add-forms">
-        <form id="add-album-form" class="add-form">
-          <h2>Add an album</h2>
-          <input name="artist" placeholder="Artist" required>
-          <input name="title" placeholder="Title" required>
-          <input name="format" placeholder="Format (e.g. Vinyl, Vinyl Double, CD)" required>
-          <input name="reference" placeholder="Reference (optional)">
-          <input name="dateAcquired" type="date">
-          <button type="submit">Add album</button>
-          <p class="form-status"></p>
-        </form>
-        <form id="add-single-form" class="add-form">
-          <h2>Add a single</h2>
-          <input name="artist" placeholder="Artist" required>
-          <input name="titles" placeholder="A-side / B-side" required>
-          <input name="format" placeholder="Format" value="Single">
-          <input name="dateAcquired" type="date">
-          <button type="submit">Add single</button>
-          <p class="form-status"></p>
-        </form>
-        <form id="add-dvd-form" class="add-form">
-          <h2>Add a DVD</h2>
-          <input name="title" placeholder="Title" required>
-          <input name="format" placeholder="Format" value="DVD">
-          <input name="dateAcquired" type="date">
-          <button type="submit">Add DVD</button>
-          <p class="form-status"></p>
-        </form>
-      </div>
-      <div class="write-token-box">
-        <label>Write access token: <input id="write-token-input" type="password" placeholder="Ask Neil/Rich for this"></label>
-        <button id="save-token-btn">Save</button>
-      </div>
-    </section>
-  </main>
-
-  <div id="detail-modal" class="modal hidden">
-    <div class="modal-content">
-      <button id="close-modal-btn" class="close-btn">&times;</button>
-      <div id="detail-body"></div>
-    </div>
+  <div class="home-bar">
+    <button class="menu-btn" data-open-menu>
+      <span class="bars"><span></span><span></span></span><span class="txt">Menu</span>
+    </button>
+    <h1 class="home-wordmark">NW</h1>
+    <button class="icon-btn" data-open-search aria-label="Search the collection">
+      <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6">
+        <circle cx="11" cy="11" r="7"/><line x1="16.5" y1="16.5" x2="21" y2="21"/></svg>
+    </button>
   </div>
 
-  <script src="https://cdn.jsdelivr.net/npm/fuse.js@7.0.0/dist/fuse.min.js"></script>
-  <script src="config.js"></script>
-  <script src="js/api.js"></script>
-  <script src="js/state.js"></script>
-  <script src="js/search.js"></script>
-  <script src="js/views/browse.js"></script>
-  <script src="js/views/albumDetail.js"></script>
-  <script src="js/views/addForm.js"></script>
-  <script src="js/views/suggestions.js"></script>
-  <script src="js/app.js"></script>
+  <nav class="home-menu">
+    <ul id="home-categories"></ul>
+  </nav>
+
+  <div class="home-caption" id="home-caption"><p class="t"></p><p class="a"></p></div>
+</section>
+
+<!-- ============ BROWSE ============ -->
+<main class="browse" id="browse-view">
+  <header class="topbar">
+    <button class="menu-btn" data-open-menu>
+      <span class="bars"><span></span><span></span></span><span class="txt">Menu</span>
+    </button>
+    <h1 class="wordmark"><button class="wordmark-btn" data-go-home>NW</button></h1>
+    <button class="icon-btn" data-open-search aria-label="Search the collection">
+      <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6">
+        <circle cx="11" cy="11" r="7"/><line x1="16.5" y1="16.5" x2="21" y2="21"/></svg>
+    </button>
+  </header>
+
+  <div class="filters">
+    <div class="filter-row" id="parent-row"></div>
+    <div class="child-row" id="child-row"></div>
+  </div>
+
+  <section class="section">
+    <h2 class="section-head" id="grid-head">Albums</h2>
+    <p class="section-sub" id="grid-sub"></p>
+    <div class="grid" id="results-grid"></div>
+  </section>
+
+  <section class="section bordered" id="recent-section">
+    <h2 class="section-head">Recently viewed</h2>
+    <p class="section-sub" id="recent-sub"></p>
+    <div class="grid" id="recent-grid"></div>
+  </section>
+</main>
+
+<!-- ============ SUGGESTIONS ============ -->
+<main class="page" id="suggestions-view">
+  <header class="topbar">
+    <button class="menu-btn" data-open-menu>
+      <span class="bars"><span></span><span></span></span><span class="txt">Menu</span>
+    </button>
+    <h1 class="wordmark"><button class="wordmark-btn" data-go-home>NW</button></h1>
+    <span></span>
+  </header>
+  <section class="section">
+    <h2 class="section-head">Spelling suggestions</h2>
+    <p class="section-sub">Differences between the sheet and MusicBrainz. Nothing changes until you approve it.</p>
+    <div class="suggestions-list" id="spelling-suggestions"></div>
+  </section>
+  <section class="section bordered">
+    <h2 class="section-head">Missing opportunities</h2>
+    <p class="section-sub">Studio albums by artists in the collection that aren't here yet.</p>
+    <div class="suggestions-list" id="gap-suggestions"></div>
+  </section>
+</main>
+
+<!-- ============ ADD NEW ============ -->
+<main class="page" id="add-view">
+  <header class="topbar">
+    <button class="menu-btn" data-open-menu>
+      <span class="bars"><span></span><span></span></span><span class="txt">Menu</span>
+    </button>
+    <h1 class="wordmark"><button class="wordmark-btn" data-go-home>NW</button></h1>
+    <span></span>
+  </header>
+  <section class="section">
+    <h2 class="section-head">Add to the collection</h2>
+    <p class="section-sub">New entries go straight into the spreadsheet, then fetch their own artwork and track listing.</p>
+
+    <div class="add-forms">
+      <form id="add-album-form" class="add-form">
+        <h3>Album</h3>
+        <label>Artist <input name="artist" required></label>
+        <label>Title <input name="title" required></label>
+        <label>Format <input name="format" placeholder="Vinyl, Vinyl Double, CD…" required></label>
+        <label>Reference <input name="reference" placeholder="Optional"></label>
+        <label>Date acquired <input name="dateAcquired" type="date"></label>
+        <button type="submit">Add album</button>
+        <p class="form-status"></p>
+      </form>
+
+      <form id="add-single-form" class="add-form">
+        <h3>Single</h3>
+        <label>Artist <input name="artist" required></label>
+        <label>Titles <input name="titles" placeholder="A-side / B-side" required></label>
+        <label>Format <input name="format" value="Single"></label>
+        <label>Date acquired <input name="dateAcquired" type="date"></label>
+        <button type="submit">Add single</button>
+        <p class="form-status"></p>
+      </form>
+
+      <form id="add-dvd-form" class="add-form">
+        <h3>DVD</h3>
+        <label>Title <input name="title" required></label>
+        <label>Format <input name="format" value="DVD"></label>
+        <label>Date acquired <input name="dateAcquired" type="date"></label>
+        <button type="submit">Add DVD</button>
+        <p class="form-status"></p>
+      </form>
+    </div>
+
+    <div class="token-box">
+      <label>Write access token
+        <input id="write-token-input" type="password" placeholder="Required to save changes">
+      </label>
+      <button class="btn" id="save-token-btn">Save token</button>
+      <p class="token-note" id="token-note"></p>
+    </div>
+  </section>
+</main>
+
+<!-- ============ WISHLIST ============ -->
+<main class="page" id="wishlist-view">
+  <header class="topbar">
+    <button class="menu-btn" data-open-menu>
+      <span class="bars"><span></span><span></span></span><span class="txt">Menu</span>
+    </button>
+    <h1 class="wordmark"><button class="wordmark-btn" data-go-home>NW</button></h1>
+    <span></span>
+  </header>
+  <section class="section">
+    <h2 class="section-head">Wishlist</h2>
+    <p class="section-sub">Approved suggestions, waiting to be bought.</p>
+    <div class="wishlist" id="wishlist-list"></div>
+  </section>
+</main>
+
+<!-- ============ MENU OVERLAY ============ -->
+<div class="overlay menu-overlay" id="menu-overlay" hidden>
+  <div class="overlay-bar">
+    <button class="menu-btn" data-close-menu>
+      <span class="bars close"><span></span><span></span></span><span class="txt">Close</span>
+    </button>
+    <h2 class="wordmark">NW</h2>
+    <span></span>
+  </div>
+  <nav class="menu-columns">
+    <div class="menu-col">
+      <h3>Collection</h3>
+      <ul id="menu-categories"></ul>
+    </div>
+    <div class="menu-col">
+      <h3>Maintain</h3>
+      <ul>
+        <li><button data-nav="add">Add new</button></li>
+        <li><button data-nav="suggestions">Suggestions <span class="badge" id="suggestion-badge" hidden>0</span></button></li>
+        <li><button data-nav="wishlist">Wishlist</button></li>
+      </ul>
+    </div>
+    <div class="menu-col">
+      <h3>The sheet</h3>
+      <ul>
+        <li><a id="sheet-link" href="#" target="_blank" rel="noopener">Open in Google Sheets</a></li>
+      </ul>
+    </div>
+  </nav>
+  <p class="menu-foot" id="menu-stats"></p>
+</div>
+
+<!-- ============ SEARCH OVERLAY ============ -->
+<div class="overlay search-overlay" id="search-overlay" hidden>
+  <div class="overlay-bar">
+    <span></span>
+    <h2 class="wordmark">Search</h2>
+    <button class="icon-btn" data-close-search aria-label="Close search">
+      <svg width="22" height="22" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.6">
+        <line x1="5" y1="5" x2="19" y2="19"/><line x1="19" y1="5" x2="5" y2="19"/></svg>
+    </button>
+  </div>
+  <div class="search-body">
+    <input id="search-input" type="search" placeholder="Search artist, title or track…" autocomplete="off">
+    <p class="search-hint" id="search-hint">Searches albums, singles, compilations and DVDs at once.</p>
+    <div class="grid" id="search-results"></div>
+  </div>
+</div>
+
+<!-- ============ DETAIL ============ -->
+<div class="overlay detail-overlay" id="detail-overlay" hidden>
+  <div class="overlay-bar">
+    <span></span>
+    <h2 class="wordmark">NW</h2>
+    <button class="icon-btn" data-close-detail aria-label="Close">
+      <svg width="22" height="22" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.6">
+        <line x1="5" y1="5" x2="19" y2="19"/><line x1="19" y1="5" x2="5" y2="19"/></svg>
+    </button>
+  </div>
+  <div class="detail-body" id="detail-body"></div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/fuse.js@7.0.0/dist/fuse.min.js"></script>
+<script src="config.js"></script>
+<script src="js/api.js"></script>
+<script src="js/state.js"></script>
+<script src="js/search.js"></script>
+<script src="js/views/browse.js"></script>
+<script src="js/views/albumDetail.js"></script>
+<script src="js/views/addForm.js"></script>
+<script src="js/views/suggestions.js"></script>
+<script src="js/app.js"></script>
 </body>
 </html>

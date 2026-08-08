@@ -1,87 +1,105 @@
 const DETAIL = (function () {
+  const esc = function (s) { return BROWSE.escapeHtml(s); };
+
   function formatLength(seconds) {
     if (!seconds) return '';
-    const m = Math.floor(seconds / 60), s = seconds % 60;
+    const m = Math.floor(seconds / 60);
+    const s = seconds % 60;
     return m + ':' + String(s).padStart(2, '0');
   }
 
   function tracklistHtml(tracks) {
     if (!tracks.length) return '';
     const bySide = {};
+    const order = [];
     tracks.forEach(function (t) {
-      if (!bySide[t.side]) bySide[t.side] = [];
-      bySide[t.side].push(t);
+      const side = t.side || 'Tracks';
+      if (!bySide[side]) { bySide[side] = []; order.push(side); }
+      bySide[side].push(t);
     });
-    return Object.keys(bySide).map(function (side) {
-      return '<div class="side-heading">' + BROWSE.escapeHtml(side) + '</div>' +
+    return order.map(function (side) {
+      return '<div class="side-heading">' + esc(side) + '</div>' +
         bySide[side].map(function (t) {
-          return '<div class="track-row"><span class="track-title">' + t.trackNumber + '. ' + BROWSE.escapeHtml(t.title) + '</span>' +
-            '<span class="track-length">' + formatLength(t.lengthSeconds) + '</span></div>';
+          return '<div class="track-row"><span class="n">' + esc(t.trackNumber) + '</span>' +
+            '<span class="t">' + esc(t.title) + '</span>' +
+            '<span class="d">' + formatLength(t.lengthSeconds) + '</span></div>';
         }).join('');
     }).join('');
   }
 
-  function renderSimple(item, collection) {
-    const fields = { albums: ['artist', 'title', 'format', 'dateAcquired', 'reference', 'reactions'],
-      singles: ['artist', 'titles', 'format', 'date'],
-      compilations: ['artist', 'title', 'albumTitle', 'format'],
-      dvds: ['title', 'format', 'date'] }[collection];
-    const labels = { artist: 'Artist', title: 'Title', titles: 'Titles', format: 'Format',
-      dateAcquired: 'Date acquired', date: 'Date', reference: 'Reference', reactions: 'Notes', albumTitle: 'From compilation' };
-    document.getElementById('detail-body').innerHTML =
-      '<h2 style="font-family: var(--font-display); margin-top:0;">' + BROWSE.escapeHtml(item.title || item.titles || '') + '</h2>' +
-      fields.filter(function (f) { return item[f]; }).map(function (f) {
-        return '<p class="meta-line"><strong>' + labels[f] + ':</strong> ' + BROWSE.escapeHtml(item[f]) + '</p>';
-      }).join('');
+  function metaRows(pairs) {
+    const rows = pairs.filter(function (p) { return p[1]; })
+      .map(function (p) { return '<dt>' + esc(p[0]) + '</dt><dd>' + esc(p[1]) + '</dd>'; }).join('');
+    return rows ? '<div class="detail-meta"><dl>' + rows + '</dl></div>' : '';
   }
 
-  async function renderEnriched(item, collection) {
-    const isAlbum = collection === 'albums';
-    const detail = isAlbum ? await API.getAlbumDetail(item.rowNumber) : await API.getSingleDetail(item.rowNumber);
-    const artUrl = (detail.enrichment && detail.enrichment.CoverArtURL) || item.coverArtUrl;
-    const titleText = isAlbum ? item.title : item.titles;
+  function render(item, collectionKey, detail) {
+    const meta = collectionMeta(collectionKey);
+    const enrichment = detail && detail.enrichment;
+    const tracks = (detail && detail.tracklist) || [];
+    const art = (enrichment && enrichment.CoverArtURL) || item.coverArtUrl;
 
     document.getElementById('detail-body').innerHTML =
-      '<div class="gatefold">' +
-      '<div class="art-wrap">' + (artUrl ? '<img src="' + artUrl + '" alt="">' : '') + '</div>' +
-      '<div class="gatefold-meta">' +
-      '<h2>' + BROWSE.escapeHtml(item.artist || '') + '</h2>' +
-      '<p class="meta-line" style="font-family:var(--font-display); font-size:1.05rem; color:var(--ink);">' + BROWSE.escapeHtml(titleText || '') + '</p>' +
-      '<p class="meta-line">' + BROWSE.escapeHtml(item.format || '') + (item.dateAcquired || item.date ? ' · ' + BROWSE.escapeHtml(item.dateAcquired || item.date) : '') + '</p>' +
-      (detail.enrichment && detail.enrichment.SourceURL ? '<p class="meta-line"><a href="' + detail.enrichment.SourceURL + '" target="_blank" rel="noopener">View on MusicBrainz</a></p>' : '') +
-      tracklistHtml(detail.tracklist) +
-      '</div></div>';
+      '<div class="detail-grid">' +
+        '<div class="detail-art">' +
+          (art ? '<img src="' + esc(art) + '" alt="">' : '<span class="no-art">No cover found</span>') +
+        '</div>' +
+        '<div>' +
+          '<p class="detail-eyebrow">' + esc(meta.label.replace(/s$/, '')) + '</p>' +
+          '<h2 class="detail-title">' + esc(titleOf(item, collectionKey)) + '</h2>' +
+          (meta.hasArtist && item.artist ? '<p class="detail-artist">' + esc(item.artist) + '</p>' : '') +
+          metaRows([
+            ['Format', tidyFormat(item.format)],
+            ['Released', enrichment && enrichment.ReleaseYear],
+            ['Genre', enrichment && enrichment.Genre],
+            ['Date played', item.dateAcquired || item.date],
+            ['Discs', item.vinylDiscs],
+            ['Notes', item.reactions],
+            ['From', item.albumTitle]
+          ]) +
+          (tracks.length ? tracklistHtml(tracks)
+            : '<p class="empty-note">No track listing yet.</p>') +
+          (enrichment && enrichment.SourceURL
+            ? '<p style="margin-top:1.8rem"><a class="btn" href="' + esc(enrichment.SourceURL) + '" target="_blank" rel="noopener">View on MusicBrainz</a></p>'
+            : '') +
+        '</div>' +
+      '</div>';
   }
 
-  async function open(collection, rowNumber) {
-    const item = STORE[collection].find(function (i) { return i.rowNumber === rowNumber; });
+  async function open(collectionKey, rowNumber) {
+    const item = STORE[collectionKey].filter(function (i) { return i.rowNumber === rowNumber; })[0];
     if (!item) return;
-    const modal = document.getElementById('detail-modal');
-    modal.classList.remove('hidden');
 
-    if (collection === 'albums' || collection === 'singles') {
-      document.getElementById('detail-body').innerHTML = '<p class="empty-note">Loading…</p>';
-      try {
-        await renderEnriched(item, collection);
-      } catch (err) {
-        renderSimple(item, collection);
-      }
-    } else {
-      renderSimple(item, collection);
+    recordView(collectionKey, rowNumber);
+    BROWSE.renderRecent();
+
+    const overlay = document.getElementById('detail-overlay');
+    overlay.hidden = false;
+    document.getElementById('detail-body').innerHTML = '<p class="empty-note">Loading…</p>';
+
+    // Only albums and singles have enrichment records; the others render from the sheet alone.
+    let detail = null;
+    try {
+      if (collectionKey === 'albums') detail = await API.getAlbumDetail(rowNumber);
+      else if (collectionKey === 'singles') detail = await API.getSingleDetail(rowNumber);
+    } catch (err) {
+      detail = null; // fall back to sheet data rather than showing an error for a missing extra
     }
+    render(item, collectionKey, detail);
   }
 
-  function close() {
-    document.getElementById('detail-modal').classList.add('hidden');
-  }
+  function close() { document.getElementById('detail-overlay').hidden = true; }
 
   function init() {
-    document.getElementById('close-modal-btn').addEventListener('click', close);
-    document.getElementById('detail-modal').addEventListener('click', function (e) {
-      if (e.target.id === 'detail-modal') close();
-    });
+    document.querySelector('[data-close-detail]').addEventListener('click', close);
     document.addEventListener('keydown', function (e) {
-      if (e.key === 'Escape') close();
+      if (e.key === 'Escape' && !document.getElementById('detail-overlay').hidden) close();
+    });
+    // Card clicks anywhere (browse grid, recently viewed, search results)
+    document.body.addEventListener('click', function (e) {
+      const card = e.target.closest('.card');
+      if (!card) return;
+      open(card.dataset.collection, Number(card.dataset.row));
     });
   }
 
