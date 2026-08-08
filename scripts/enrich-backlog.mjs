@@ -127,9 +127,35 @@ function pickReleaseGroup(groups) {
   return contenders.find(isOriginalAlbum) || groups[0];
 }
 
+/* Neil catalogues solo artists surname-first — "Bowie    David", "Amos   Tori" —
+   which is a deliberate convention (the sheet sorts by surname, and the column is
+   headed "A A Artist"). It affects about 30% of the albums and matches nothing in
+   MusicBrainz, so queries try the reversed form as well. His data is left alone:
+   the reversal is for searching only. */
+function artistVariants(artist) {
+  const raw = String(artist || '').trim();
+  const variants = [raw.replace(/\s+/g, ' ')];
+  const surnameFirst = raw.match(/^(.+?)\s{2,}(.+)$/);
+  if (surnameFirst) {
+    const reversed = `${surnameFirst[2].trim()} ${surnameFirst[1].trim()}`.replace(/\s+/g, ' ');
+    if (!variants.includes(reversed)) variants.push(reversed);
+  }
+  return variants;
+}
+
+// True when two names contain the same words in a different order or spacing,
+// e.g. "Bowie    David" and "David Bowie". Such a difference is Neil's filing
+// convention, not a spelling mistake, so it must never become a suggestion.
+function sameWordsDifferentOrder(a, b) {
+  const wordsOf = (s) => normalize(s).split(' ').filter(Boolean).sort().join(' ');
+  return wordsOf(a) === wordsOf(b);
+}
+
 function spellingSuggestion(score, current, canonical) {
   if (score < MATCH_REVIEW) return '';
-  return normalize(current) === normalize(canonical) ? '' : canonical;
+  if (normalize(current) === normalize(canonical)) return '';
+  if (sameWordsDifferentOrder(current, canonical)) return '';
+  return canonical;
 }
 
 const yearOf = (d) => (d && /^(\d{4})/.test(d) ? Number(d.slice(0, 4)) : '');
@@ -137,9 +163,15 @@ const titleCase = (s) => s.replace(/\b\w/g, (c) => c.toUpperCase());
 
 /* ---------------- per-record enrichment ---------------- */
 async function enrichAlbum(album, ua) {
-  const q = `artist:"${String(album.artist).replace(/"/g, '')}" AND releasegroup:"${String(album.title).replace(/"/g, '')}"`;
-  const search = await mbFetch(`/release-group/?query=${encodeURIComponent(q)}&limit=10`, ua);
-  const hit = pickReleaseGroup(search['release-groups'] || []);
+  const title = String(album.title).replace(/"/g, '');
+  let hit = null;
+  for (const variant of artistVariants(album.artist)) {
+    const q = `artist:"${variant.replace(/"/g, '')}" AND releasegroup:"${title}"`;
+    const search = await mbFetch(`/release-group/?query=${encodeURIComponent(q)}&limit=10`, ua);
+    const candidate = pickReleaseGroup(search['release-groups'] || []);
+    if (candidate && (!hit || candidate.score > hit.score)) hit = candidate;
+    if (hit && hit.score >= MATCH_STRONG) break; // good enough; don't spend another request
+  }
 
   if (!hit || hit.score < MATCH_REVIEW) {
     return { record: { SourceRow: album.rowNumber, Artist: album.artist, Title: album.title,
@@ -207,9 +239,14 @@ async function enrichAlbum(album, ua) {
 
 async function enrichSingle(single, ua) {
   const primary = String(single.titles || '').split('/')[0].trim();
-  const q = `artist:"${String(single.artist).replace(/"/g, '')}" AND recording:"${primary.replace(/"/g, '')}"`;
-  const search = await mbFetch(`/recording/?query=${encodeURIComponent(q)}&limit=5`, ua);
-  const hit = (search.recordings || [])[0];
+  let hit = null;
+  for (const variant of artistVariants(single.artist)) {
+    const q = `artist:"${variant.replace(/"/g, '')}" AND recording:"${primary.replace(/"/g, '')}"`;
+    const search = await mbFetch(`/recording/?query=${encodeURIComponent(q)}&limit=5`, ua);
+    const candidate = (search.recordings || [])[0];
+    if (candidate && (!hit || candidate.score > hit.score)) hit = candidate;
+    if (hit && hit.score >= MATCH_STRONG) break;
+  }
 
   if (!hit || hit.score < MATCH_REVIEW) {
     return { record: { SourceRow: single.rowNumber, Artist: single.artist, Titles: single.titles,
