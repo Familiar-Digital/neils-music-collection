@@ -31,9 +31,9 @@ function doGet(e) {
 
 // Write actions all require a `token` field matching WRITE_TOKEN (see Auth.gs).
 const WRITE_ACTIONS = {
-  addAlbum: function (data) { return { rowNumber: appendAlbum(data) }; },
-  addSingle: function (data) { return { rowNumber: appendSingle(data) }; },
-  addDVD: function (data) { return { rowNumber: appendDVD(data) }; },
+  addAlbum: function (data) { return appendAlbum(data); },
+  addSingle: function (data) { return appendSingle(data); },
+  addDVD: function (data) { return { duplicate: false, rowNumber: appendDVD(data) }; },
   applySpellingFix: function (data) { applySpellingFix(data.sheetName, Number(data.sourceRow), data.field, data.newValue); return { ok: true }; },
   rejectSpellingSuggestion: function (data) { rejectSpellingSuggestion(data.sheetName, Number(data.sourceRow)); return { ok: true }; },
   approveGapSuggestion: function (data) { approveGapSuggestion(Number(data.rowNumber)); return { ok: true }; },

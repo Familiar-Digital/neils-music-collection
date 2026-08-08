@@ -77,10 +77,25 @@ function getDVDs() {
   }).filter(function (d) { return d.title; });
 }
 
+// Owning the same album on two formats is normal in this collection (The Wall is
+// here on both vinyl and CD), so only an artist+title+FORMAT match counts as a
+// duplicate. Returns the existing row number, or -1.
+function findDuplicateAlbum(artist, title, format) {
+  const key = function (a, t, f) { return normalizeForCompare(a) + '|' + normalizeForCompare(t) + '|' + normalizeForCompare(f); };
+  const target = key(artist, title, format);
+  const match = getAlbums().filter(function (a) { return key(a.artist, a.title, a.format) === target; })[0];
+  return match ? match.rowNumber : -1;
+}
+
 // Appends a new album using the same column layout Neil already uses.
 // Only fills the columns this app understands (artist/title/format/reference/date) —
 // leaves the vinyl/CD/DVD count and reactions columns for him to fill in by hand if he wants.
+// Refuses an exact duplicate unless the caller explicitly passes force:true.
 function appendAlbum(data) {
+  const duplicateRow = findDuplicateAlbum(data.artist, data.title, data.format);
+  if (duplicateRow !== -1 && !data.force) {
+    return { duplicate: true, existingRow: duplicateRow, rowNumber: null };
+  }
   const row = new Array(14).fill('');
   const c = ALBUMS_COLS;
   row[c.ARTIST] = data.artist || '';
@@ -90,14 +105,14 @@ function appendAlbum(data) {
   row[c.DATE_VINYL] = data.dateAcquired || '';
   const rowNumber = appendRow(SHEET_ALBUMS, row);
   enrichOnDemand(SHEET_ALBUMS, rowNumber);
-  return rowNumber;
+  return { duplicate: false, rowNumber: rowNumber };
 }
 
 function appendSingle(data) {
   const row = [data.artist || '', data.titles || '', data.format || 'Single', data.dateAcquired || ''];
   const rowNumber = appendRow(SHEET_SINGLES, row);
   enrichOnDemand(SHEET_SINGLES, rowNumber);
-  return rowNumber;
+  return { duplicate: false, rowNumber: rowNumber };
 }
 
 function appendDVD(data) {

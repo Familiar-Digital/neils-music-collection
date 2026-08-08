@@ -20,16 +20,39 @@ function mbFetchJson(path, retriesLeft) {
   return JSON.parse(response.getContentText());
 }
 
+// Secondary types that mean "not the original album" — a plain LP in the collection
+// should never match a remix/live/compilation edition of the same name.
+const NON_ORIGINAL_SECONDARY_TYPES = ['Remix', 'Live', 'Compilation', 'Soundtrack', 'DJ-mix', 'Mixtape/Street', 'Demo'];
+
+function isOriginalStudioAlbum(group) {
+  if (group['primary-type'] !== 'Album') return false;
+  const secondary = group['secondary-types'] || [];
+  return !secondary.some(function (t) { return NON_ORIGINAL_SECONDARY_TYPES.indexOf(t) !== -1; });
+}
+
+// MusicBrainz routinely returns several equally-scoring release-groups for the same
+// title (e.g. "Paranoid" matches the album, the single, the live single AND a remix
+// album, all at score 100). Taking the first hit picks essentially at random, so
+// fetch a page of candidates and prefer a genuine studio album.
 function mbSearchReleaseGroup(artist, title) {
   const query = 'artist:"' + artist.replace(/"/g, '') + '" AND releasegroup:"' + title.replace(/"/g, '') + '"';
-  const data = mbFetchJson('/release-group/?query=' + encodeURIComponent(query) + '&limit=1');
-  const hit = data['release-groups'] && data['release-groups'][0];
-  if (!hit) return null;
+  const data = mbFetchJson('/release-group/?query=' + encodeURIComponent(query) + '&limit=10');
+  const groups = data['release-groups'] || [];
+  if (!groups.length) return null;
+
+  const topScore = groups[0].score;
+  const contenders = groups.filter(function (g) { return g.score >= topScore - 2; });
+  const originals = contenders.filter(isOriginalStudioAlbum);
+  const hit = originals.length ? originals[0] : groups[0];
+
   return {
     id: hit.id,
     score: hit.score,
     title: hit.title,
-    artist: hit['artist-credit'] && hit['artist-credit'][0] ? hit['artist-credit'][0].name : artist
+    artist: hit['artist-credit'] && hit['artist-credit'][0] ? hit['artist-credit'][0].name : artist,
+    primaryType: hit['primary-type'] || null,
+    secondaryTypes: hit['secondary-types'] || [],
+    firstReleaseDate: hit['first-release-date'] || null
   };
 }
 
@@ -80,6 +103,26 @@ function mbGetReleaseWithTracklist(releaseId) {
     });
   });
   return { releaseId: releaseId, tracks: tracks };
+}
+
+// Genres for a release-group, most-voted first. MusicBrainz genres are community
+// tags, so they're uneven — we take the top one and treat it as a hint, not gospel.
+function mbGetGenre(releaseGroupId) {
+  try {
+    const data = mbFetchJson('/release-group/' + releaseGroupId + '?inc=genres');
+    const genres = (data.genres || []).slice().sort(function (a, b) { return (b.count || 0) - (a.count || 0); });
+    if (!genres.length) return null;
+    return genres[0].name.replace(/\b\w/g, function (c) { return c.toUpperCase(); });
+  } catch (err) {
+    Logger.log('Genre lookup failed for release-group ' + releaseGroupId + ': ' + err.message);
+    return null;
+  }
+}
+
+function yearFromDate(dateString) {
+  if (!dateString) return null;
+  const match = String(dateString).match(/^(\d{4})/);
+  return match ? Number(match[1]) : null;
 }
 
 function mbGetArtist(name) {

@@ -1,0 +1,362 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Design D — Editorial (v2)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter+Tight:wght@400;500;600;700&family=Playfair+Display:wght@700;900&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --paper:#FFFFFF; --ink:#0A0A0A; --grey:#8A8A8A; --grey-light:#F2F2F2; --rule:#E2E2E2;
+    --font-sans:'Inter Tight',-apple-system,Helvetica,Arial,sans-serif;
+    --font-serif:'Playfair Display',Georgia,serif;
+  }
+  @media (prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:.01ms !important;transition-duration:.01ms !important;}}
+  *{box-sizing:border-box;}
+  body{margin:0;background:var(--paper);color:var(--ink);font-family:var(--font-sans);-webkit-font-smoothing:antialiased;}
+  button{font-family:inherit;}
+
+  /* ================= HOME (full bleed) ================= */
+  .home{position:fixed;inset:0;overflow:hidden;background:var(--ink);}
+  .home.hidden{display:none;}
+  .home-art{position:absolute;inset:0;}
+  .home-art img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:0;transition:opacity 1.4s ease;transform:scale(1.04);}
+  .home-art img.visible{opacity:1;}
+  /* legibility scrims — only where text sits, so the artwork stays the hero */
+  .home::after{content:'';position:absolute;inset:0;pointer-events:none;
+    background:linear-gradient(to bottom,rgba(0,0,0,.45) 0%,rgba(0,0,0,0) 28%,rgba(0,0,0,0) 45%,rgba(0,0,0,.65) 100%);}
+
+  .home-bar{position:absolute;top:0;left:0;right:0;z-index:3;
+    display:grid;grid-template-columns:1fr auto 1fr;align-items:center;padding:1.6rem 2.5rem;color:#fff;}
+  .menu-btn{display:flex;align-items:center;gap:1rem;background:none;border:none;cursor:pointer;color:inherit;padding:0;
+    font-size:.78rem;letter-spacing:.09em;text-transform:uppercase;}
+  .menu-btn .bars{display:block;width:34px;}
+  .menu-btn .bars span{display:block;height:1.5px;background:currentColor;margin:5px 0;}
+  .home-wordmark{font-family:var(--font-serif);font-weight:900;font-size:1.7rem;margin:0;text-align:center;line-height:1;color:#fff;}
+  .icon-btn{background:none;border:none;cursor:pointer;padding:0;color:inherit;justify-self:end;}
+
+  /* bottom-left: the parent categories, as the primary way in */
+  .home-menu{position:absolute;left:2.5rem;bottom:2.6rem;z-index:3;}
+  .home-menu li{list-style:none;}
+  .home-menu ul{margin:0;padding:0;}
+  .home-cat{
+    background:none;border:none;padding:0;cursor:pointer;display:flex;align-items:baseline;gap:.9rem;
+    color:rgba(255,255,255,.72);font-size:clamp(2rem,4.2vw,3.4rem);font-weight:700;letter-spacing:-.03em;
+    line-height:1.06;transition:color .25s ease;
+  }
+  .home-cat .count{font-size:.72rem;font-weight:500;letter-spacing:.08em;color:rgba(255,255,255,.55);}
+  .home-cat:hover,.home-cat:focus-visible{color:#fff;outline:none;}
+  .home-cat:focus-visible{text-decoration:underline;text-underline-offset:6px;}
+
+  /* bottom-right: what's currently showing + scroll cue */
+  .home-caption{position:absolute;right:2.5rem;bottom:2.6rem;z-index:3;text-align:right;color:rgba(255,255,255,.8);}
+  .home-caption .t{font-size:.9rem;font-weight:600;margin:0;color:#fff;}
+  .home-caption .a{font-size:.78rem;margin:.15rem 0 0;letter-spacing:.04em;}
+
+  /* ================= BROWSE ================= */
+  .browse{display:none;}
+  .browse.active{display:block;}
+  .topbar{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;padding:1.6rem 2.5rem;}
+  .topbar .menu-btn{color:var(--ink);}
+  .wordmark{font-family:var(--font-serif);font-weight:900;font-size:1.9rem;margin:0;text-align:center;line-height:1;}
+  .topbar .icon-btn{color:var(--ink);}
+
+  /* two-tier filters: parent row, then child row scoped to the parent */
+  .filters{border-bottom:1px solid var(--rule);padding:2.2rem 2.5rem 0;}
+  .filter-row{display:flex;justify-content:center;align-items:baseline;gap:2rem;flex-wrap:wrap;}
+  .filter-row .label{font-size:.72rem;letter-spacing:.09em;text-transform:uppercase;color:var(--grey);}
+  .parent{background:none;border:none;cursor:pointer;padding:0 0 3px;color:var(--grey);
+    font-size:1.05rem;font-weight:600;letter-spacing:-.01em;border-bottom:2px solid transparent;}
+  .parent.active{color:var(--ink);border-bottom-color:var(--ink);}
+  .parent:hover{color:var(--ink);}
+  .child-row{display:flex;justify-content:center;align-items:center;gap:.5rem;flex-wrap:wrap;padding:1.1rem 0 1.3rem;}
+  .chip{background:none;border:1px solid var(--rule);border-radius:100px;padding:.34rem .85rem;cursor:pointer;
+    font-size:.76rem;letter-spacing:.04em;color:var(--grey);}
+  .chip:hover{border-color:var(--ink);color:var(--ink);}
+  .chip.active{background:var(--ink);border-color:var(--ink);color:#fff;}
+  .chip-group{display:flex;gap:.4rem;align-items:center;}
+  .chip-group .gl{font-size:.68rem;letter-spacing:.09em;text-transform:uppercase;color:var(--grey);margin-right:.2rem;}
+
+  .grid-section{padding:3rem 2.5rem 4rem;}
+  .section-head{font-size:clamp(1.6rem,3vw,2.4rem);font-weight:700;letter-spacing:-.03em;margin:0 0 .4rem;}
+  .section-sub{font-size:.8rem;color:var(--grey);margin:0 0 2.2rem;letter-spacing:.03em;}
+  .grid{display:grid;grid-template-columns:repeat(4,1fr);gap:3rem 2rem;}
+  .card{background:none;border:none;padding:0;cursor:pointer;text-align:left;display:block;}
+  .card-art{aspect-ratio:1;background:var(--grey-light);overflow:hidden;margin-bottom:1rem;display:flex;align-items:center;justify-content:center;}
+  .card-art img{width:100%;height:100%;object-fit:cover;display:block;transition:transform .5s ease;}
+  .card:hover .card-art img{transform:scale(1.03);}
+  .no-art{font-size:.68rem;letter-spacing:.08em;text-transform:uppercase;color:var(--grey);text-align:center;padding:0 1rem;}
+  .card-label{font-size:.7rem;letter-spacing:.09em;text-transform:uppercase;color:var(--grey);margin:0 0 .3rem;}
+  .card-title{font-size:1.15rem;font-weight:700;letter-spacing:-.02em;line-height:1.12;margin:0 0 .15rem;}
+  .card-artist{font-size:.88rem;color:var(--grey);margin:0;}
+  .card:focus-visible{outline:2px solid var(--ink);outline-offset:6px;}
+  .empty{color:var(--grey);font-style:italic;}
+
+  .recent{border-top:1px solid var(--rule);margin:0 2.5rem;padding:2.5rem 0 4rem;}
+  .foot{border-top:1px solid var(--rule);margin:0 2.5rem;padding:1.4rem 0 3rem;
+    font-size:.7rem;letter-spacing:.09em;text-transform:uppercase;color:var(--grey);}
+
+  @media (max-width:1100px){.grid{grid-template-columns:repeat(3,1fr);}}
+  @media (max-width:780px){
+    .grid{grid-template-columns:repeat(2,1fr);}
+    .home-caption{display:none;}
+    .home-menu{left:1.2rem;bottom:1.8rem;}
+    .topbar,.filters,.grid-section{padding-left:1.2rem;padding-right:1.2rem;}
+    .recent,.foot{margin:0 1.2rem;}
+    .menu-btn .txt{display:none;}
+  }
+</style>
+</head>
+<body>
+
+<!-- ==================== HOME: full bleed ==================== -->
+<section class="home" id="home">
+  <div class="home-art" id="homeArt"></div>
+
+  <div class="home-bar">
+    <button class="menu-btn"><span class="bars"><span></span><span></span></span><span class="txt">Menu</span></button>
+    <h1 class="home-wordmark">NW</h1>
+    <button class="icon-btn" aria-label="Search the collection">
+      <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6">
+        <circle cx="11" cy="11" r="7"/><line x1="16.5" y1="16.5" x2="21" y2="21"/></svg>
+    </button>
+  </div>
+
+  <nav class="home-menu">
+    <ul>
+      <li><button class="home-cat" data-parent="albums">Albums <span class="count">543</span></button></li>
+      <li><button class="home-cat" data-parent="singles">Singles <span class="count">409</span></button></li>
+      <li><button class="home-cat" data-parent="compilations">Compilations <span class="count">2,915</span></button></li>
+      <li><button class="home-cat" data-parent="dvds">DVDs <span class="count">46</span></button></li>
+    </ul>
+  </nav>
+
+  <div class="home-caption" id="homeCaption">
+    <p class="t"></p><p class="a"></p>
+  </div>
+</section>
+
+<!-- ==================== BROWSE ==================== -->
+<main class="browse" id="browse">
+  <header class="topbar">
+    <button class="menu-btn" id="backHome"><span class="bars"><span></span><span></span></span><span class="txt">Menu</span></button>
+    <h1 class="wordmark">NW</h1>
+    <button class="icon-btn" aria-label="Search the collection">
+      <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6">
+        <circle cx="11" cy="11" r="7"/><line x1="16.5" y1="16.5" x2="21" y2="21"/></svg>
+    </button>
+  </header>
+
+  <div class="filters">
+    <div class="filter-row" id="parentRow"></div>
+    <div class="child-row" id="childRow"></div>
+  </div>
+
+  <section class="grid-section">
+    <h2 class="section-head" id="gridHead">Albums</h2>
+    <p class="section-sub" id="gridSub"></p>
+    <div class="grid" id="grid"></div>
+  </section>
+
+  <section class="recent">
+    <h2 class="section-head">Recently viewed</h2>
+    <p class="section-sub" id="recentSub">Records you've opened, most recent first.</p>
+    <div class="grid" id="recentGrid"></div>
+  </section>
+
+  <p class="foot">Design D — Editorial v2 · full-bleed home · two-tier filters · recently viewed</p>
+</main>
+
+<script>
+/* ------------------------------------------------------------------
+   Real records from Neil's collection, with real Cover Art Archive art.
+   releaseYear + genre come from MusicBrainz enrichment — they are NOT in
+   his spreadsheet, which only records the date he played something.
+   Black Sabbath is included with no art on purpose: the archive genuinely
+   has none for that release, so the empty state is honest.
+-------------------------------------------------------------------*/
+const DATA = [
+  {id:1, parent:'albums', artist:'The Beatles', title:'Abbey Road',      format:'Vinyl',        releaseYear:1969, genre:'Rock',      art:'https://coverartarchive.org/release/03437e02-835f-3a0a-a37c-48a36c2e852a/front-500'},
+  {id:2, parent:'albums', artist:'David Bowie', title:'Ziggy Stardust',  format:'Vinyl',        releaseYear:1972, genre:'Glam Rock', art:'https://coverartarchive.org/release/23aba558-f1d4-36c7-af66-297c7e88e625/front-500'},
+  {id:3, parent:'albums', artist:'Blondie',     title:'Parallel Lines',  format:'Vinyl',        releaseYear:1978, genre:'New Wave',  art:'https://coverartarchive.org/release/29f63ef9-0e81-4b92-bbea-307d1c8a82fa/front-500'},
+  {id:4, parent:'albums', artist:'Kate Bush',   title:'The Kick Inside', format:'Vinyl',        releaseYear:1978, genre:'Art Pop',   art:'https://coverartarchive.org/release/2c65b269-8f6f-3223-85c5-237165d99129/front-500'},
+  {id:5, parent:'albums', artist:'Abba',        title:'Super Trouper',   format:'Vinyl',        releaseYear:1980, genre:'Pop',       art:'https://coverartarchive.org/release/02b90bad-ba8a-4e6c-aec9-fc84fc7c5a77/front-500'},
+  {id:6, parent:'albums', artist:'10cc',        title:'Live And Let Live', format:'Vinyl Double', releaseYear:1977, genre:'Art Rock', art:'https://coverartarchive.org/release/ce06a004-4901-48de-91c5-0839ebb30d77/front-500'},
+  {id:7, parent:'albums', artist:'Black Sabbath', title:'Paranoid',      format:'Vinyl',        releaseYear:1970, genre:'Heavy Metal', art:null},
+  {id:8, parent:'albums', artist:'Fleetwood Mac', title:'Rumours',       format:'Vinyl',        releaseYear:1977, genre:'Soft Rock', art:'https://coverartarchive.org/release/081ea37e-db59-4332-8cd2-ad020cb93af6/front-500'},
+  {id:9,  parent:'singles', artist:'Abba',  title:'Waterloo / Watch Out', format:'Single', releaseYear:1974, genre:'Pop',      art:null},
+  {id:10, parent:'singles', artist:'A Flock Of Seagulls', title:'Wishing / Committed', format:'Single', releaseYear:1982, genre:'New Wave', art:null},
+  {id:11, parent:'dvds', artist:'', title:'The Bourne Identity', format:'DVD', releaseYear:2002, genre:'Thriller', art:null},
+  {id:12, parent:'compilations', artist:'10cc', title:'Wall Street Shuffle', format:'CD', releaseYear:1974, genre:'Art Rock', art:null}
+];
+
+const PARENTS = [
+  {key:'albums', label:'Albums'},
+  {key:'singles', label:'Singles'},
+  {key:'compilations', label:'Compilations'},
+  {key:'dvds', label:'DVDs'}
+];
+
+let currentParent = 'albums';
+let childFilters = { decade:null, genre:null, format:null };
+
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const decadeOf = y => y ? Math.floor(y/10)*10 + 's' : null;
+
+/* ---------- Recently viewed (persisted, newest first, capped) ---------- */
+const RECENT_KEY = 'nw_recently_viewed';
+const RECENT_MAX = 8;
+
+function getRecentIds(){
+  try { return JSON.parse(localStorage.getItem(RECENT_KEY)) || []; } catch { return []; }
+}
+function recordView(id){
+  const ids = getRecentIds().filter(x => x !== id);   // move to front if already present
+  ids.unshift(id);
+  localStorage.setItem(RECENT_KEY, JSON.stringify(ids.slice(0, RECENT_MAX)));
+  renderRecent();
+}
+function renderRecent(){
+  const items = getRecentIds().map(id => DATA.find(d => d.id === id)).filter(Boolean);
+  const grid = document.getElementById('recentGrid');
+  const sub  = document.getElementById('recentSub');
+  if (!items.length){
+    grid.innerHTML = '';
+    sub.textContent = 'Nothing yet — open a record and it will appear here.';
+    return;
+  }
+  sub.textContent = 'Records you’ve opened, most recent first.';
+  grid.innerHTML = items.map(cardHtml).join('');
+}
+
+/* ---------- Cards ---------- */
+function cardHtml(item){
+  const art = item.art
+    ? `<img src="${item.art}" alt="" loading="lazy">`
+    : `<span class="no-art">No cover<br>found</span>`;
+  const meta = [item.format, item.releaseYear].filter(Boolean).join(' · ');
+  return `<button class="card" data-id="${item.id}">
+    <div class="card-art">${art}</div>
+    <p class="card-label">${esc(meta)}</p>
+    <p class="card-title">${esc(item.title)}</p>
+    ${item.artist ? `<p class="card-artist">${esc(item.artist)}</p>` : ''}
+  </button>`;
+}
+
+/* ---------- Filters ---------- */
+function itemsForParent(){ return DATA.filter(d => d.parent === currentParent); }
+
+function distinct(list, fn){
+  return [...new Set(list.map(fn).filter(Boolean))].sort();
+}
+
+function renderParents(){
+  document.getElementById('parentRow').innerHTML =
+    `<span class="label">Collection:</span>` +
+    PARENTS.map(p => `<button class="parent ${p.key===currentParent?'active':''}" data-parent="${p.key}">${p.label}</button>`).join('');
+}
+
+// Child filters are derived from whatever is actually in the current parent
+// category — so Singles never offers a decade that only Albums has.
+function renderChildren(){
+  const pool = itemsForParent();
+  const groups = [
+    { key:'decade', label:'Decade', values: distinct(pool, d => decadeOf(d.releaseYear)) },
+    { key:'genre',  label:'Genre',  values: distinct(pool, d => d.genre) },
+    { key:'format', label:'Format', values: distinct(pool, d => d.format) }
+  ].filter(g => g.values.length > 1);
+
+  document.getElementById('childRow').innerHTML = groups.map(g => `
+    <span class="chip-group">
+      <span class="gl">${g.label}</span>
+      ${g.values.map(v => `<button class="chip ${childFilters[g.key]===v?'active':''}" data-group="${g.key}" data-value="${esc(v)}">${esc(v)}</button>`).join('')}
+    </span>
+  `).join('') || '<span class="gl" style="color:var(--grey)">No further filters for this category</span>';
+}
+
+function renderGrid(){
+  let items = itemsForParent();
+  if (childFilters.decade) items = items.filter(d => decadeOf(d.releaseYear) === childFilters.decade);
+  if (childFilters.genre)  items = items.filter(d => d.genre === childFilters.genre);
+  if (childFilters.format) items = items.filter(d => d.format === childFilters.format);
+
+  const parentLabel = PARENTS.find(p => p.key === currentParent).label;
+  document.getElementById('gridHead').textContent = parentLabel;
+  document.getElementById('gridSub').textContent =
+    `${items.length} of ${itemsForParent().length}` + (items.length === itemsForParent().length ? '' : ' — filtered');
+  document.getElementById('grid').innerHTML =
+    items.map(cardHtml).join('') || '<p class="empty">Nothing matches these filters.</p>';
+}
+
+function refresh(){ renderParents(); renderChildren(); renderGrid(); }
+
+/* ---------- Home: full-bleed rotating artwork ---------- */
+const withArt = DATA.filter(d => d.art);
+const homeArt = document.getElementById('homeArt');
+const layers = [document.createElement('img'), document.createElement('img')];
+layers.forEach(l => { l.alt=''; homeArt.appendChild(l); });
+let active = 0, lastIdx = -1;
+
+function showHome(item){
+  const next = 1 - active;
+  layers[next].src = item.art;
+  layers[next].classList.add('visible');
+  layers[active].classList.remove('visible');
+  active = next;
+  const cap = document.getElementById('homeCaption');
+  cap.querySelector('.t').textContent = item.title;
+  cap.querySelector('.a').textContent = [item.artist, item.releaseYear].filter(Boolean).join(' · ');
+}
+function randomItem(){
+  let i; do { i = Math.floor(Math.random()*withArt.length); } while (i === lastIdx && withArt.length > 1);
+  lastIdx = i; return withArt[i];
+}
+showHome(randomItem());
+if (!window.matchMedia('(prefers-reduced-motion: reduce)').matches){
+  setInterval(() => showHome(randomItem()), 5000);
+}
+
+/* ---------- Navigation ---------- */
+function openBrowse(parent){
+  currentParent = parent;
+  childFilters = { decade:null, genre:null, format:null };
+  document.getElementById('home').classList.add('hidden');
+  document.getElementById('browse').classList.add('active');
+  refresh();
+  window.scrollTo(0,0);
+}
+function openHome(){
+  document.getElementById('browse').classList.remove('active');
+  document.getElementById('home').classList.remove('hidden');
+}
+
+document.querySelectorAll('.home-cat').forEach(btn =>
+  btn.addEventListener('click', () => openBrowse(btn.dataset.parent)));
+document.getElementById('backHome').addEventListener('click', openHome);
+
+document.getElementById('parentRow').addEventListener('click', e => {
+  const btn = e.target.closest('.parent'); if (!btn) return;
+  currentParent = btn.dataset.parent;
+  childFilters = { decade:null, genre:null, format:null };
+  refresh();
+});
+
+document.getElementById('childRow').addEventListener('click', e => {
+  const chip = e.target.closest('.chip'); if (!chip) return;
+  const { group, value } = chip.dataset;
+  childFilters[group] = childFilters[group] === value ? null : value;  // click again to clear
+  renderChildren(); renderGrid();
+});
+
+document.getElementById('browse').addEventListener('click', e => {
+  const card = e.target.closest('.card'); if (!card) return;
+  recordView(Number(card.dataset.id));
+});
+
+refresh();
+renderRecent();
+</script>
+</body>
+</html>

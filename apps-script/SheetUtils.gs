@@ -50,6 +50,31 @@ function ensureHelperTabsExist() {
   });
 }
 
+// THE one function to run from the Apps Script editor after deploying.
+// Creates the helper tabs, generates a write token if there isn't one yet,
+// and prints the token to the log so you can paste it into the web app.
+// Safe to re-run — it won't regenerate an existing token.
+function runInitialSetup() {
+  ensureHelperTabsExist();
+
+  const props = PropertiesService.getScriptProperties();
+  let token = props.getProperty('WRITE_TOKEN');
+  if (!token) {
+    token = Utilities.getUuid().replace(/-/g, '').slice(0, 20);
+    props.setProperty('WRITE_TOKEN', token);
+    Logger.log('Generated a new WRITE_TOKEN.');
+  } else {
+    Logger.log('WRITE_TOKEN already set — reusing it.');
+  }
+
+  Logger.log('=================================================');
+  Logger.log('WRITE TOKEN (paste into the app\'s "Add New" tab):');
+  Logger.log(token);
+  Logger.log('=================================================');
+  Logger.log('Helper tabs ready: ' + Object.keys(HELPER_SHEET_HEADERS).join(', '));
+  return token;
+}
+
 // One-time setup entry point — run manually from the Apps Script editor once,
 // or it runs automatically on first Web App request. Safe to re-run any time (idempotent).
 function runSetup() {

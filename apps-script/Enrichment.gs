@@ -52,7 +52,7 @@ function enrichAlbumRow(album) {
     releaseId = mbPickReleaseForGroup(mbHit.id);
     if (releaseId) {
       tracks = mbGetReleaseWithTracklist(releaseId).tracks;
-      coverArtUrl = caaGetFrontCoverUrl(releaseId);
+      coverArtUrl = caaGetFrontCoverUrl(mbHit.id, releaseId);
     }
   } catch (err) {
     Logger.log('Tracklist/cover lookup failed for album row ' + album.rowNumber + ': ' + err.message);
@@ -70,6 +70,8 @@ function enrichAlbumRow(album) {
     MatchStatus: classifyMatch(mbHit.score),
     CoverArtURL: coverArtUrl || '',
     SourceURL: 'https://musicbrainz.org/release-group/' + mbHit.id,
+    ReleaseYear: yearFromDate(mbHit.firstReleaseDate) || '',
+    Genre: mbGetGenre(mbHit.id) || '',
     LastEnrichedAt: now,
     SpellingSuggestion_Artist: artistSuggestion || '',
     SpellingSuggestion_Title: titleSuggestion || '',
@@ -103,7 +105,7 @@ function enrichSingleRow(single) {
   try {
     if (mbHit.releaseId) {
       tracks = mbGetReleaseWithTracklist(mbHit.releaseId).tracks;
-      coverArtUrl = caaGetFrontCoverUrl(mbHit.releaseId);
+      coverArtUrl = caaGetFrontCoverUrl(null, mbHit.releaseId);
     }
   } catch (err) {
     Logger.log('Tracklist/cover lookup failed for single row ' + single.rowNumber + ': ' + err.message);
@@ -188,6 +190,20 @@ function runEnrichmentBatch() {
     }
     logJobRun('enrichmentBatch', processed, calls, errors);
   });
+}
+
+// Wipes all enrichment results so the batch job reprocesses everything from scratch.
+// Needed whenever the matching logic changes — rows already marked Enriched are
+// skipped by runEnrichmentBatch, so improved matching would never reach them.
+// Only touches tabs this app owns; Neil's original tabs are untouched.
+function resetEnrichment() {
+  [SHEET_ENRICHMENT_ALBUMS, SHEET_ENRICHMENT_SINGLES, SHEET_TRACKLISTS].forEach(function (name) {
+    const sheet = getSheet(name);
+    const lastRow = sheet.getLastRow();
+    if (lastRow > 1) sheet.deleteRows(2, lastRow - 1);
+  });
+  resetCheckpoint('enrichmentBatch');
+  Logger.log('Enrichment cleared. The next runEnrichmentBatch will start from the beginning.');
 }
 
 function installEnrichmentTrigger() {

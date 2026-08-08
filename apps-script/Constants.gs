@@ -13,10 +13,15 @@ const SHEET_WISHLIST = 'Wishlist';
 const SHEET_JOB_LOG = 'Job_Log';
 
 const HELPER_SHEET_HEADERS = {
+  // ReleaseYear and Genre are sourced from MusicBrainz — they don't exist in Neil's
+  // original tabs (his "Date" columns record when he played a record, not when it came out).
+  // The app's year/genre filters depend on these.
   Enrichment_Albums: ['SourceRow', 'Artist', 'Title', 'MB_ReleaseGroupID', 'MB_ReleaseID', 'MatchScore', 'MatchStatus',
-    'CoverArtURL', 'SourceURL', 'LastEnrichedAt', 'SpellingSuggestion_Artist', 'SpellingSuggestion_Title', 'SuggestionStatus'],
+    'CoverArtURL', 'SourceURL', 'ReleaseYear', 'Genre', 'LastEnrichedAt',
+    'SpellingSuggestion_Artist', 'SpellingSuggestion_Title', 'SuggestionStatus'],
   Enrichment_Singles: ['SourceRow', 'Artist', 'Titles', 'MB_RecordingID', 'MB_ReleaseID', 'MatchScore', 'MatchStatus',
-    'CoverArtURL', 'SourceURL', 'LastEnrichedAt', 'SpellingSuggestion_Artist', 'SpellingSuggestion_Titles', 'SuggestionStatus'],
+    'CoverArtURL', 'SourceURL', 'ReleaseYear', 'Genre', 'LastEnrichedAt',
+    'SpellingSuggestion_Artist', 'SpellingSuggestion_Titles', 'SuggestionStatus'],
   Tracklists: ['EnrichmentKey', 'Side', 'TrackNumber', 'Title', 'LengthSeconds', 'MB_RecordingID'],
   Gap_Suggestions: ['Artist', 'MB_ArtistID', 'SuggestedAlbumTitle', 'ReleaseDate', 'MB_ReleaseGroupID', 'MatchConfidence', 'Status', 'ReviewedAt'],
   Wishlist: ['Artist', 'Title', 'Source', 'AddedAt'],
@@ -38,6 +43,14 @@ const MATCH_STRONG_THRESHOLD = 90;
 const MATCH_REVIEW_THRESHOLD = 70;
 const GAP_MATCH_THRESHOLD = 80;
 
+// MusicBrainz requires a descriptive User-Agent with a real contact, or it throttles
+// and eventually blocks. Deliberately NOT built from Session.getEffectiveUser() —
+// that needs a userinfo scope this script intentionally doesn't request, and it
+// silently yields an empty contact, which MusicBrainz rejects.
+// Set MUSICBRAINZ_CONTACT in Script Properties to your email; the fallback keeps
+// requests valid (and keeps a personal address out of the repo) if it's unset.
 function getMusicBrainzUserAgent() {
-  return 'NeilsMusicDatabase/1.0 ( ' + Session.getEffectiveUser().getEmail() + ' )';
+  const contact = PropertiesService.getScriptProperties().getProperty('MUSICBRAINZ_CONTACT')
+    || 'https://github.com/FamiliarRich/neil-music-database';
+  return 'NeilsMusicDatabase/1.0 ( ' + contact + ' )';
 }
