@@ -40,7 +40,8 @@ const WRITE_ACTIONS = {
   rejectGapSuggestion: function (data) { rejectGapSuggestion(Number(data.rowNumber)); return { ok: true }; },
   applyFormatFix: function (data) { applyFormatFix(data.sheetName, Number(data.sourceRow), data.newValue); return { ok: true }; },
   rejectFormatFix: function (data) { rejectFormatFix(data.sheetName, Number(data.sourceRow)); return { ok: true }; },
-  bulkImportEnrichment: function (data) { return bulkImportEnrichment(data); }
+  bulkImportEnrichment: function (data) { return bulkImportEnrichment(data); },
+  updateField: function (data) { return updateField(data.sheetName, data.sourceRow, data.field, data.value); }
 };
 
 function doPost(e) {

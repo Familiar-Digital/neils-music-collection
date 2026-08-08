@@ -77,21 +77,69 @@ function splitDiscogsTitle(combined) {
   return { artist: combined.slice(0, idx), title: combined.slice(idx + 3) };
 }
 
+/* A catalogue number identifies a specific pressing, so the country matters:
+   Dark Side of the Moon is SHVL 804 in the UK but SHVLJ(D) 804 in South Africa.
+   Neil's collection is British, so UK pressings are nudged ahead of foreign ones
+   — enough to win a tie, not enough to beat a materially better title match.
+   The country travels with the result so he can check it against the label. */
+const HOME_COUNTRIES = ['UK', 'United Kingdom', 'Europe'];
+const HOME_COUNTRY_BONUS = 6;
+
 function scoreCandidate(candidate, wantedArtist, wantedTitle) {
   const parts = splitDiscogsTitle(candidate.title);
   const artistScore = similarity(parts.artist, wantedArtist);
   const titleScore = similarity(parts.title, wantedTitle);
   // Title carries more weight: a mis-parsed artist half is common, a wrong album is not.
-  return Math.round(titleScore * 0.65 + artistScore * 0.35);
+  const base = Math.round(titleScore * 0.65 + artistScore * 0.35);
+  const home = HOME_COUNTRIES.includes(candidate.country) ? HOME_COUNTRY_BONUS : 0;
+  return Math.min(100, base + home);
+}
+
+/* Discogs indexes every pressing of everything, including bootlegs and unrelated
+   media that happen to share a title. Searching unconstrained returned an
+   educational DVD for "Dark Side of the Moon" (score 90) and a bootleg cassette
+   for an Abba compilation (score 100) — both would have been trusted. So the
+   medium Neil actually owns is passed to the search, and unofficial pressings
+   are discarded outright. */
+const MEDIUM_KEYWORDS = [
+  [/vinyl|lp|single|ep|album/i, 'Vinyl'],
+  [/\bcd\b/i, 'CD'],
+  [/dvd|blu-?ray/i, 'DVD'],
+  [/cassette|tape/i, 'Cassette']
+];
+
+export function discogsMediumFor(format) {
+  const f = String(format || '');
+  for (const [pattern, medium] of MEDIUM_KEYWORDS) {
+    if (pattern.test(f)) return medium;
+  }
+  return null;
+}
+
+function isUnofficial(candidate) {
+  return (candidate.format || []).some((f) => /unofficial|bootleg|promo|test pressing/i.test(f));
+}
+
+function matchesMedium(candidate, medium) {
+  if (!medium) return true;
+  return (candidate.format || []).some((f) => {
+    if (medium === 'Vinyl') return /vinyl|lp\b/i.test(f);
+    if (medium === 'CD') return /^cd$|\bcd\b/i.test(f);
+    if (medium === 'DVD') return /dvd|blu-?ray/i.test(f);
+    if (medium === 'Cassette') return /cassette/i.test(f);
+    return true;
+  });
 }
 
 /* Searches for a release and returns a normalised result, or null.
-   artistVariants lets the caller pass both "Bowie    David" and "David Bowie". */
-export async function discogsFindRelease({ artistVariants, title, auth }) {
+   artistVariants lets the caller pass both "Bowie    David" and "David Bowie".
+   `medium` narrows the search to the format actually owned. */
+export async function discogsFindRelease({ artistVariants, title, medium, auth }) {
   let best = null;
+  const formatParam = medium ? `&format=${encodeURIComponent(medium)}` : '';
 
   for (const artist of artistVariants) {
-    const query = `?type=release&artist=${encodeURIComponent(artist)}&release_title=${encodeURIComponent(title)}&per_page=5`;
+    const query = `?type=release&artist=${encodeURIComponent(artist)}&release_title=${encodeURIComponent(title)}${formatParam}&per_page=10`;
     let data;
     try {
       data = await discogsFetch(`/database/search${query}`, auth);
@@ -101,6 +149,8 @@ export async function discogsFindRelease({ artistVariants, title, auth }) {
     }
 
     (data.results || []).forEach((candidate) => {
+      if (isUnofficial(candidate)) return;
+      if (!matchesMedium(candidate, medium)) return;
       const score = scoreCandidate(candidate, artist, title);
       if (!best || score > best.score) best = { score, candidate };
     });

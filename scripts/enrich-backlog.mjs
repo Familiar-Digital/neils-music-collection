@@ -33,7 +33,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { discogsFindRelease, discogsTracklist } from './lib/discogs.mjs';
+import { discogsFindRelease, discogsTracklist, discogsMediumFor } from './lib/discogs.mjs';
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(HERE, '..');
@@ -305,6 +305,7 @@ async function tryDiscogs(item, kind, auth) {
   const found = await discogsFindRelease({
     artistVariants: artistVariants(item.artist),
     title,
+    medium: discogsMediumFor(item.format),
     auth
   });
   if (!found || found.score < DISCOGS_MIN_SCORE) return null;

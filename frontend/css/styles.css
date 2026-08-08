@@ -223,3 +223,18 @@ a{color:inherit;}
   .home-caption{display:none;}
   .menu-btn .txt{display:none;}
 }
+
+/* ---------- inline field editing (pressing numbers) ---------- */
+.field-edit{border-top:1px solid var(--rule);margin-top:1.6rem;padding-top:1.2rem;
+  display:flex;align-items:flex-end;gap:.8rem;flex-wrap:wrap;}
+.field-edit label{display:flex;flex-direction:column;gap:.3rem;font-size:.7rem;letter-spacing:.09em;
+  text-transform:uppercase;color:var(--grey);flex:1 1 220px;}
+.field-edit input{border:none;border-bottom:1px solid var(--rule);background:none;padding:.4rem 0;
+  font-family:var(--font-sans);font-size:1rem;color:var(--ink);letter-spacing:normal;text-transform:none;}
+.field-edit input:focus{outline:none;border-bottom-color:var(--ink);}
+.field-hint,.field-status{flex-basis:100%;font-size:.78rem;color:var(--grey);margin:.1rem 0 0;}
+.field-status.ok{color:var(--ok);}
+.field-status.err{color:var(--warn);}
+.linkish{background:none;border:none;padding:0;cursor:pointer;font:inherit;color:var(--ink);
+  text-decoration:underline;text-underline-offset:3px;}
+.linkish:hover{color:var(--grey);}

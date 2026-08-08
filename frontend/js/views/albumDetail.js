@@ -33,6 +33,33 @@ const DETAIL = (function () {
     return rows ? '<div class="detail-meta"><dl>' + rows + '</dl></div>' : '';
   }
 
+  /* Pressing (catalogue) number. Written into Neil's own Reference column, so
+     it shows up in the spreadsheet immediately. Discogs' guess is offered as a
+     one-click fill rather than applied automatically — a catalogue number
+     identifies one specific pressing, and only the record in his hands says
+     which. The country and year are shown so he can check it against the label. */
+  function referenceEditorHtml(item, collectionKey) {
+    if (collectionKey !== 'albums') return '';
+    const current = item.reference || '';
+    const suggested = item.suggestedReference || '';
+    const canSuggest = suggested && normalizeRef(suggested) !== normalizeRef(current);
+    return '<div class="field-edit" data-row="' + item.rowNumber + '">' +
+      '<label>Pressing / catalogue number' +
+        '<input class="ref-input" type="text" value="' + esc(current) + '" placeholder="e.g. SHVL 804">' +
+      '</label>' +
+      '<button class="btn ref-save">Save</button>' +
+      (canSuggest
+        ? '<p class="field-hint">' + esc(item.matchSource || 'Discogs') + ' suggests <button class="linkish ref-use" data-value="' +
+          esc(suggested) + '">' + esc(suggested) + '</button> — check it matches your copy.</p>'
+        : '<p class="field-hint">Written straight into the spreadsheet.</p>') +
+      '<p class="field-status"></p>' +
+      '</div>';
+  }
+
+  function normalizeRef(s) {
+    return String(s || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+  }
+
   function render(item, collectionKey, detail) {
     const meta = collectionMeta(collectionKey);
     const enrichment = detail && detail.enrichment;
@@ -57,6 +84,7 @@ const DETAIL = (function () {
             ['Notes', item.reactions],
             ['From', item.albumTitle]
           ]) +
+          referenceEditorHtml(item, collectionKey) +
           (tracks.length ? tracklistHtml(tracks)
             : '<p class="empty-note">No track listing yet.</p>') +
           (enrichment && enrichment.SourceURL
@@ -90,8 +118,52 @@ const DETAIL = (function () {
 
   function close() { document.getElementById('detail-overlay').hidden = true; }
 
+  async function saveReference(wrap) {
+    const input = wrap.querySelector('.ref-input');
+    const status = wrap.querySelector('.field-status');
+    const rowNumber = Number(wrap.dataset.row);
+
+    if (!API.getWriteToken()) {
+      status.className = 'field-status err';
+      status.textContent = 'Enter the write access token on the "Add new" page first.';
+      return;
+    }
+
+    status.className = 'field-status';
+    status.textContent = 'Saving…';
+    try {
+      await API.updateField({ sheetName: 'Albums', sourceRow: rowNumber, field: 'reference', value: input.value });
+      // Update the copy in memory so reopening the record shows the new value
+      // without waiting for a full reload of the collection.
+      const item = STORE.albums.filter(function (a) { return a.rowNumber === rowNumber; })[0];
+      if (item) item.reference = input.value.trim();
+      status.className = 'field-status ok';
+      status.textContent = 'Saved to the spreadsheet.';
+    } catch (err) {
+      status.className = 'field-status err';
+      status.textContent = 'Could not save: ' + err.message;
+    }
+  }
+
   function init() {
     document.querySelector('[data-close-detail]').addEventListener('click', close);
+
+    document.getElementById('detail-overlay').addEventListener('click', function (e) {
+      const use = e.target.closest('.ref-use');
+      if (use) {
+        e.target.closest('.field-edit').querySelector('.ref-input').value = use.dataset.value;
+        return;
+      }
+      const save = e.target.closest('.ref-save');
+      if (save) saveReference(save.closest('.field-edit'));
+    });
+
+    document.getElementById('detail-overlay').addEventListener('keydown', function (e) {
+      if (e.key === 'Enter' && e.target.classList.contains('ref-input')) {
+        e.preventDefault();
+        saveReference(e.target.closest('.field-edit'));
+      }
+    });
     document.addEventListener('keydown', function (e) {
       if (e.key === 'Escape' && !document.getElementById('detail-overlay').hidden) close();
     });

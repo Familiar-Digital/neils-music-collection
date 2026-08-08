@@ -8,7 +8,9 @@ function coverArtLookup(helperSheetName) {
       coverArtUrl: r.CoverArtURL || null,
       matchStatus: r.MatchStatus || null,
       releaseYear: r.ReleaseYear || null,
-      genre: r.Genre || null
+      genre: r.Genre || null,
+      catalogueNumber: r.CatalogueNumber || null,
+      matchSource: r.MatchSource || null
     };
   });
   return map;
@@ -35,7 +37,9 @@ function getAlbums() {
       coverArtUrl: e.coverArtUrl || null,
       matchStatus: e.matchStatus || null,
       releaseYear: e.releaseYear || null,
-      genre: e.genre || null
+      genre: e.genre || null,
+      suggestedReference: e.catalogueNumber || null,
+      matchSource: e.matchSource || null
     };
   }).filter(function (a) { return a.artist || a.title; });
 }
