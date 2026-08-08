@@ -207,8 +207,25 @@ function resetEnrichment() {
   Logger.log('Enrichment cleared. The next runEnrichmentBatch will start from the beginning.');
 }
 
-function installEnrichmentTrigger() {
-  ScriptApp.newTrigger('runEnrichmentBatch').timeBased().everyMinutes(15).create();
+/* Nightly safety net. The one-time backlog runs locally, but Neil adds records
+   by typing straight into the spreadsheet — those never pass through the app,
+   so nothing would ever fetch their artwork. This picks them up overnight, so
+   anything added during the day has its cover by morning.
+
+   Idempotent: removes any existing trigger for the same function first, so
+   re-running never stacks up duplicates that would fight each other. */
+function installNightlyEnrichment() {
+  ScriptApp.getProjectTriggers().forEach(function (t) {
+    if (t.getHandlerFunction() === 'runEnrichmentBatch') ScriptApp.deleteTrigger(t);
+  });
+  ScriptApp.newTrigger('runEnrichmentBatch').timeBased().everyDays(1).atHour(3).create();
+  return { ok: true, schedule: 'daily at 03:00 ' + Session.getScriptTimeZone() };
+}
+
+function listTriggers() {
+  return ScriptApp.getProjectTriggers().map(function (t) {
+    return { handler: t.getHandlerFunction(), type: String(t.getEventType()) };
+  });
 }
 
 /* Re-fetches one record from scratch. Needed because enrichment is skipped for

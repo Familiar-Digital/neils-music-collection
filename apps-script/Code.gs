@@ -16,7 +16,8 @@ const READ_ACTIONS = {
   getSuggestions: getSuggestions,
   getWishlist: getWishlist,
   getGapStatus: getGapStatus,
-  getCompilationAlbums: getCompilationAlbums
+  getCompilationAlbums: getCompilationAlbums,
+  listTriggers: listTriggers
 };
 
 function doGet(e) {
@@ -52,6 +53,7 @@ const WRITE_ACTIONS = {
   setGapThreshold: function (data) { return setGapThreshold(data.threshold); },
   markPlayed: function (data) { return markPlayed(data.sheetName, Number(data.sourceRow), data.date); },
   reEnrich: function (data) { return reEnrichRow(data.sheetName, Number(data.sourceRow)); },
+  installNightlyEnrichment: function () { return installNightlyEnrichment(); },
   runGapAnalysis: function () { runGapAnalysisBatch(); return getGapStatus(); }
 };
 

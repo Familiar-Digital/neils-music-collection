@@ -42,7 +42,10 @@ const CHECKPOINT = path.join(HERE, '.enrich-checkpoint.json');
 const MB = 'https://musicbrainz.org/ws/2';
 const CAA = 'https://coverartarchive.org';
 const RATE_MS = 1100;          // MusicBrainz asks for ~1 req/sec; be slightly under
-const BATCH_SIZE = 100;        // records per write request (endpoint caps at 250)
+/* Small batches on purpose. Larger ones are fewer requests, but nothing appears
+   in the sheet until a batch flushes — at ~8s per record, batching by 100 means
+   a quarter of an hour staring at an empty collection wondering if it works. */
+const BATCH_SIZE = 20;
 const MATCH_REVIEW = 70;
 const MATCH_STRONG = 90;
 
