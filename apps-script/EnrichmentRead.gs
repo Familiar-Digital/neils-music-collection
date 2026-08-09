@@ -122,3 +122,19 @@ function getEverything() {
     dvds: getDVDs()
   };
 }
+
+
+/* A random cover, for the link preview when the site is shared.
+   Returns a redirect rather than an image: the app never stores artwork, only
+   the URL of it, so the honest thing is to point at wherever the cover lives.
+
+   Worth knowing this is only random per fetch. WhatsApp, iMessage, Slack and
+   the rest cache a link's preview aggressively, so in practice each platform
+   settles on whichever cover it happened to ask for first. That is still a
+   record from Neil's own collection, which is the point. */
+function randomCoverRedirect() {
+  const withArt = getAlbums().filter(function (a) { return a.coverArtUrl; });
+  if (!withArt.length) return null;
+  const pick = withArt[Math.floor(Math.random() * withArt.length)];
+  return pick.coverArtUrl;
+}

@@ -27,6 +27,15 @@ function doGet(e) {
   try {
     ensureHelperTabsExist();
     const action = e.parameter.action;
+
+    // The share-preview image: no password, since a crawler has none, and it
+    // reveals only a single piece of album artwork already public elsewhere.
+    if (action === 'shareImage') {
+      const url = randomCoverRedirect();
+      return HtmlService.createHtmlOutput(
+        url ? '<meta http-equiv="refresh" content="0;url=' + url + '">' : 'No artwork yet'
+      );
+    }
     // The access check itself must answer without a valid token, otherwise the
     // password screen has no way to tell a wrong password from a broken link.
     if (action === 'checkAccess') return jsonOutput(checkAccess(e.parameter));
