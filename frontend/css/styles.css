@@ -255,12 +255,12 @@ a{color:inherit;}
 .gate-inner{width:100%;max-width:340px;text-align:center;}
 .gate-wordmark{font-family:var(--font-serif);font-weight:900;font-size:2.4rem;margin:0 0 .3rem;color:#fff;}
 .gate-title{font-size:.75rem;letter-spacing:.12em;text-transform:uppercase;color:rgba(255,255,255,.55);margin:0 0 2.5rem;}
-.gate form{display:flex;flex-direction:column;gap:.7rem;text-align:left;}
-.gate label{font-size:.7rem;letter-spacing:.09em;text-transform:uppercase;color:rgba(255,255,255,.55);}
-.gate input{border:none;border-bottom:1px solid rgba(255,255,255,.3);background:none;color:#fff;
-  font-family:var(--font-sans);font-size:1.15rem;padding:.5rem 0;}
+.gate form{display:flex;flex-direction:column;align-items:center;gap:.7rem;text-align:center;}
+.gate label{align-self:center;font-size:.7rem;letter-spacing:.09em;text-transform:uppercase;color:rgba(255,255,255,.55);}
+.gate input{width:100%;text-align:center;border:none;border-bottom:1px solid rgba(255,255,255,.3);
+  background:none;color:#fff;font-family:var(--font-sans);font-size:1.15rem;padding:.5rem 0;}
 .gate input:focus{outline:none;border-bottom-color:#fff;}
-.gate .btn{border-color:rgba(255,255,255,.5);color:#fff;margin-top:.8rem;align-self:flex-start;}
+.gate .btn{border-color:rgba(255,255,255,.5);color:#fff;margin-top:.8rem;}
 .gate .btn:hover{background:#fff;color:var(--ink);}
 .gate-status{font-size:.8rem;color:#E2725B;min-height:1.2em;margin:.2rem 0 0;}
 
@@ -350,3 +350,19 @@ html,body{overflow-x:hidden;}
 .detail-actions-label{font-size:.7rem;letter-spacing:.09em;text-transform:uppercase;color:var(--grey);
   margin-right:.3rem;}
 .played-note{font-size:.78rem;color:var(--grey);flex-basis:100%;}
+
+
+/* ---------- loading spinner ----------
+   A spinning record rather than a generic spinner: it says what is loading, and
+   suits a collection of vinyl better than an abstract circle. */
+.loading-record{display:flex;flex-direction:column;align-items:center;justify-content:center;
+  gap:1rem;padding:5rem 0;color:var(--grey);}
+.loading-record svg{animation:spin 1.6s linear infinite;}
+.loading-record span{font-size:.72rem;letter-spacing:.09em;text-transform:uppercase;}
+@keyframes spin{to{transform:rotate(360deg);}}
+@media (prefers-reduced-motion:reduce){.loading-record svg{animation:none;}}
+
+/* "Also appears on" entries are navigable, so they read as links. */
+.track-row.linked{cursor:pointer;}
+.track-row.linked .t{text-decoration:underline;text-underline-offset:3px;text-decoration-color:var(--rule);}
+.track-row.linked:hover .t{text-decoration-color:var(--ink);}

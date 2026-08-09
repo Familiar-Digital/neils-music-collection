@@ -72,6 +72,15 @@ const DETAIL = (function () {
      checking the label — and a wrong pressing number reads as authoritative in
      a way a blank field does not. Condition is his existing annotation, kept in
      the column he already uses for it. */
+  function loadingRecordHtml() {
+    return '<div class="loading-record">' +
+      '<svg width="56" height="56" viewBox="0 0 56 56" fill="none" stroke="currentColor" stroke-width="1.4">' +
+        '<circle cx="28" cy="28" r="26"/><circle cx="28" cy="28" r="18"/>' +
+        '<circle cx="28" cy="28" r="10"/><circle cx="28" cy="28" r="3.2" fill="currentColor" stroke="none"/>' +
+        '<path d="M28 2a26 26 0 0 1 26 26" stroke-width="2.4"/>' +
+      '</svg><span>Loading</span></div>';
+  }
+
   function isAlbumSheet(collectionKey) {
     return collectionKey === 'albums' || collectionKey === 'musicDvds';
   }
@@ -80,10 +89,16 @@ const DETAIL = (function () {
     // Music DVDs are Albums rows, so they get the same editable fields.
     if (!isAlbumSheet(collectionKey)) return '';
     // Artwork actions sit together, secondary to the record's own information.
+    /* A record that already has artwork doesn't need "find" — it needs
+       "change this if it's wrong". Re-fetch only makes sense where nothing was
+       found, since it repeats the search that already failed to place it. */
+    const matched = !!item.coverArtUrl;
     return '<div class="detail-actions">' +
-        '<span class="detail-actions-label">Artwork &amp; details</span>' +
-        '<button class="btn btn-small btn-quiet findmatch-btn" data-row="' + item.rowNumber + '" data-sheet="Albums">Find a match</button>' +
-        '<button class="btn btn-small btn-quiet refetch-btn" data-row="' + item.rowNumber + '">Re-fetch</button>' +
+        '<span class="detail-actions-label">Artwork</span>' +
+        '<button class="btn btn-small btn-quiet findmatch-btn" data-row="' + item.rowNumber + '" data-sheet="Albums">' +
+          (matched ? 'Change match' : 'Find a match') + '</button>' +
+        (matched ? '' :
+          '<button class="btn btn-small btn-quiet refetch-btn" data-row="' + item.rowNumber + '">Try again automatically</button>') +
         '<span class="played-note"></span>' +
       '</div>' +
       '<div class="match-panel" hidden></div>' +
@@ -163,7 +178,7 @@ const DETAIL = (function () {
     const albums = {};
     STORE.compilations.forEach(function (t) {
       if ((t.artist || '').replace(/\s+/g, ' ').trim().toLowerCase() !== key) return;
-      const album = (t.albumTitle || 'Unfiled').trim();
+      const album = (t.albumTitle || 'Unfiled').replace(/\s+/g, ' ').trim();
       if (!albums[album]) albums[album] = [];
       albums[album].push(t.title);
     });
@@ -171,7 +186,8 @@ const DETAIL = (function () {
     if (!names.length) return '';
     return '<div class="side-heading">Also appears on</div>' +
       names.map(function (n) {
-        return '<div class="track-row"><span class="t">' + esc(n) + '</span>' +
+        return '<div class="track-row linked" data-compilation="' + esc(n) + '">' +
+          '<span class="t">' + esc(n) + '</span>' +
           '<span class="d">' + esc(albums[n].join(', ')) + '</span></div>';
       }).join('');
   }
@@ -197,7 +213,7 @@ const DETAIL = (function () {
 
     const overlay = document.getElementById('detail-overlay');
     overlay.hidden = false;
-    document.getElementById('detail-body').innerHTML = '<p class="empty-note">Loading…</p>';
+    document.getElementById('detail-body').innerHTML = loadingRecordHtml();
 
     // Only albums and singles have enrichment records; the others render from the sheet alone.
     let detail = null;
@@ -376,7 +392,9 @@ const DETAIL = (function () {
       const findBtn = e.target.closest('.findmatch-btn');
       if (findBtn) { findMatch(findBtn); return; }
       const option = e.target.closest('.match-option');
-      if (option) chooseMatch(option);
+      if (option) { chooseMatch(option); return; }
+      const linked = e.target.closest('.track-row.linked');
+      if (linked) open('compilations', 'comp:' + linked.dataset.compilation);
     });
 
     document.getElementById('detail-overlay').addEventListener('keydown', function (e) {

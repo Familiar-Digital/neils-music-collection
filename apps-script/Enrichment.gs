@@ -30,9 +30,63 @@ function replaceTracklist(enrichmentKey, tracks) {
   });
 }
 
+/* Discogs is tried first for anything new. It is built around physical
+   releases rather than abstract works, which suits this collection: it carries
+   pressings, catalogue numbers and a format vocabulary close to Neil's own, and
+   in practice it places records MusicBrainz misses — soundtracks credited to
+   Various Artists being the clearest case. MusicBrainz remains the fallback,
+   and is still better for canonical track listings.
+
+   Existing enrichment is deliberately left alone; this changes what happens to
+   records added from now on, not what has already been matched. */
+function enrichAlbumViaDiscogs(album) {
+  const query = [album.artist, album.title].filter(Boolean).join(' ');
+  const candidates = discogsSearchCandidates(query, album.format, 5);
+  if (!candidates.length) return null;
+
+  const best = candidates[0];
+  const confident = similarityRatio(album.title, best.title) >= 70
+    || similarityRatio(query, best.artist + ' ' + best.title) >= 70;
+  if (!confident) return null;   // too loose to accept unattended; leave it for manual matching
+
+  const detail = discogsReleaseDetail(best.id);
+  return {
+    fields: {
+      Artist: album.artist,
+      Title: album.title,
+      MB_ReleaseID: String(best.id),
+      MatchScore: 90,
+      MatchStatus: 'Enriched',
+      CoverArtURL: detail.coverArtUrl || best.coverArtUrl || '',
+      SourceURL: best.url || '',
+      ReleaseYear: detail.year || best.year || '',
+      Genre: detail.genre || best.genre || '',
+      MatchSource: 'Discogs',
+      CatalogueNumber: detail.catalogueNumber || best.catalogueNumber || '',
+      LastEnrichedAt: new Date()
+    },
+    tracks: detail.tracks
+  };
+}
+
 function enrichAlbumRow(album) {
   const helperSheet = SHEET_ENRICHMENT_ALBUMS;
   const now = new Date();
+
+  // Discogs first, MusicBrainz as the fallback.
+  try {
+    const viaDiscogs = enrichAlbumViaDiscogs(album);
+    if (viaDiscogs) {
+      upsertHelperRow(helperSheet, 'SourceRow', album.rowNumber, viaDiscogs.fields);
+      if (viaDiscogs.tracks.length) {
+        replaceTracklist(enrichmentKeyFor(SHEET_ALBUMS, album.rowNumber), viaDiscogs.tracks);
+      }
+      return;
+    }
+  } catch (err) {
+    Logger.log('Discogs lookup failed for album row ' + album.rowNumber + ' (falling back): ' + err.message);
+  }
+
   let mbHit;
   try {
     mbHit = mbSearchReleaseGroup(album.artist, album.title);
