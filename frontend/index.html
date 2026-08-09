@@ -10,18 +10,20 @@
   <link rel="icon" href="favicon.svg" type="image/svg+xml">
   <link rel="apple-touch-icon" href="favicon.svg">
 
-  <!-- Share previews. The image points at an endpoint that redirects to a
-       random cover from the collection, so a shared link shows one of Neil's
-       own records rather than a generic graphic. -->
+  <!-- Share previews. A mosaic of real covers from the collection, generated
+       by scripts/build-share-image.mjs and committed as a static file.
+       A dynamic "random cover" endpoint was tried and abandoned: Apps Script
+       can only return HTML or text, never an image or a real redirect, so
+       crawlers fetching it got a web page and rendered no preview at all. -->
   <meta property="og:type" content="website">
   <meta property="og:title" content="Neil's Music Database">
   <meta property="og:description" content="A lifetime of records — 540 albums, 440 singles and 2,900 compilation tracks, collected and catalogued over a lifetime.">
-  <meta property="og:image" content="https://script.google.com/macros/s/AKfycbwNtoZGc7eLW3cT_DPZMdYQ7zR4DxMNjtxDaXkuNMwn30P5kTrl-6oPCmnJiTFGidwrmQ/exec?action=shareImage">
+  <meta property="og:image" content="https://familiar-digital.github.io/neils-music-collection/share-image.jpg">
   <meta property="og:url" content="https://familiar-digital.github.io/neils-music-collection/">
   <meta name="twitter:card" content="summary_large_image">
   <meta name="twitter:title" content="Neil's Music Database">
   <meta name="twitter:description" content="A lifetime of records, collected and catalogued.">
-  <meta name="twitter:image" content="https://script.google.com/macros/s/AKfycbwNtoZGc7eLW3cT_DPZMdYQ7zR4DxMNjtxDaXkuNMwn30P5kTrl-6oPCmnJiTFGidwrmQ/exec?action=shareImage">
+  <meta name="twitter:image" content="https://familiar-digital.github.io/neils-music-collection/share-image.jpg">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter+Tight:wght@400;500;600;700&family=Playfair+Display:wght@700;900&display=swap" rel="stylesheet">
