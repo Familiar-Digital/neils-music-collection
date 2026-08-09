@@ -2,7 +2,13 @@
   const VIEWS = ['browse', 'suggestions', 'add', 'wishlist', 'stats'];
 
   /* ---------------- routing ---------------- */
+  /* Going home means going home from wherever you are, including out of an
+     overlay — otherwise the menu or a record stays stacked on top and the tap
+     looks like it did nothing. */
   function showHome() {
+    closeMenu();
+    closeSearch();
+    if (typeof DETAIL !== 'undefined') DETAIL.close();
     document.getElementById('home-view').classList.remove('is-hidden');
     VIEWS.forEach(function (v) { document.getElementById(v + '-view').classList.remove('is-active'); });
     window.scrollTo(0, 0);
