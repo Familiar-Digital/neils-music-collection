@@ -268,7 +268,7 @@ const DETAIL = (function () {
      person recognises the right sleeve instantly, so the app offers and Neil
      decides. */
   async function findMatch(button) {
-    const panel = button.closest('.played-row').nextElementSibling;
+    const panel = document.querySelector('.match-panel');
     const rowNumber = Number(button.dataset.row);
     panel.hidden = false;
     panel.innerHTML = '<p class="empty-note">Searching…</p>';
