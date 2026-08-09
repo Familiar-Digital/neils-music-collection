@@ -17,6 +17,8 @@ const READ_ACTIONS = {
   getWishlist: getWishlist,
   getGapStatus: getGapStatus,
   getEverything: getEverything,
+  findMatchCandidates: function (p) { return findMatchCandidates(p.sheetName, p.sourceRow, p.query); },
+  getUnmatched: function (p) { return getUnmatched(p.sheetName); },
   getCompilationAlbums: getCompilationAlbums,
   listTriggers: listTriggers
 };
@@ -55,6 +57,8 @@ const WRITE_ACTIONS = {
   markPlayed: function (data) { return markPlayed(data.sheetName, Number(data.sourceRow), data.date); },
   reEnrich: function (data) { return reEnrichRow(data.sheetName, Number(data.sourceRow)); },
   installNightlyEnrichment: function () { return installNightlyEnrichment(); },
+  applyMatchCandidate: function (d) { return applyMatchCandidate(d.sheetName, Number(d.sourceRow), d.releaseId); },
+  setDiscogsToken: function (d) { PropertiesService.getScriptProperties().setProperty('DISCOGS_TOKEN', String(d.value)); return { ok: true }; },
   runGapAnalysis: function () { runGapAnalysisBatch(); return getGapStatus(); }
 };
 

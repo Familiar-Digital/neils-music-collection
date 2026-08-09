@@ -49,6 +49,8 @@ const API = (function () {
     getWishlist: function () { return get('getWishlist'); },
     getGapStatus: function () { return get('getGapStatus'); },
     getCompilationAlbums: function () { return get('getCompilationAlbums'); },
+    findMatchCandidates: function (p) { return get('findMatchCandidates', p); },
+    getUnmatched: function (p) { return get('getUnmatched', p); },
 
     addAlbum: function (data) { return post('addAlbum', data); },
     addSingle: function (data) { return post('addSingle', data); },
@@ -62,6 +64,7 @@ const API = (function () {
     updateField: function (data) { return post('updateField', data); },
     markPlayed: function (data) { return post('markPlayed', data); },
     reEnrich: function (data) { return post('reEnrich', data); },
+    applyMatchCandidate: function (data) { return post('applyMatchCandidate', data); },
     setGapThreshold: function (data) { return post('setGapThreshold', data); },
     runGapAnalysis: function () { return post('runGapAnalysis', {}); },
 

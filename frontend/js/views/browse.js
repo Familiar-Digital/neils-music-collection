@@ -69,13 +69,31 @@ const BROWSE = (function () {
       row.innerHTML = '<span class="gl">No further filters yet — these appear once artwork and release data are fetched.</span>';
       return;
     }
+
+    /* One pill per filter, which opens its options — the pattern eBay uses on
+       mobile. Laying every value out flat meant a row wider than the screen
+       however much it was trimmed, and it grows again as the collection does. */
     row.innerHTML = groups.map(function (g) {
-      return '<span class="chip-group"><span class="gl">' + g.label + '</span>' +
-        g.values.map(function (v) {
-          return '<button class="chip ' + (filters[g.key] === v ? 'active' : '') + '" data-group="' + g.key + '" data-value="' + escapeHtml(v) + '">' +
-            escapeHtml(v) + '</button>';
-        }).join('') + '</span>';
-    }).join('');
+      const active = filters[g.key];
+      return '<span class="filter-group" data-group="' + g.key + '">' +
+        '<button class="filter-pill ' + (active ? 'active' : '') + '" data-toggle="' + g.key + '">' +
+          escapeHtml(active || g.label) +
+          '<svg width="10" height="6" viewBox="0 0 10 6" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M1 1l4 4 4-4"/></svg>' +
+        '</button>' +
+        '<span class="filter-menu" hidden>' +
+          '<button class="filter-option ' + (!active ? 'active' : '') + '" data-group="' + g.key + '" data-value="">Any ' + escapeHtml(g.label.toLowerCase()) + '</button>' +
+          g.values.map(function (v) {
+            return '<button class="filter-option ' + (active === v ? 'active' : '') + '" data-group="' + g.key + '" data-value="' + escapeHtml(v) + '">' +
+              escapeHtml(v) + '</button>';
+          }).join('') +
+        '</span></span>';
+    }).join('') +
+    (Object.keys(filters).some(function (k) { return filters[k]; })
+      ? '<button class="filter-clear">Clear all</button>' : '');
+  }
+
+  function closeFilterMenus() {
+    document.querySelectorAll('.filter-menu').forEach(function (m) { m.hidden = true; });
   }
 
   function renderGrid() {
@@ -126,10 +144,17 @@ const BROWSE = (function () {
     }).join('');
   }
 
+  let listenersBound = false;
+
+  /* Safe to call more than once. Binding the same handlers twice made a filter
+     menu open and immediately close again, because the second handler saw the
+     state the first had just set and toggled it back. */
   function init() {
     SEARCH.buildIndices();
     renderCategoryLists();
     refresh();
+    if (listenersBound) return;
+    listenersBound = true;
 
     document.getElementById('parent-row').addEventListener('click', function (e) {
       const btn = e.target.closest('.parent');
@@ -137,12 +162,31 @@ const BROWSE = (function () {
     });
 
     document.getElementById('child-row').addEventListener('click', function (e) {
-      const chip = e.target.closest('.chip');
-      if (!chip) return;
-      const group = chip.dataset.group;
-      filters[group] = filters[group] === chip.dataset.value ? null : chip.dataset.value; // click again to clear
-      renderChildren();
-      renderGrid();
+      const toggle = e.target.closest('.filter-pill');
+      if (toggle) {
+        const menu = toggle.nextElementSibling;
+        const wasOpen = !menu.hidden;
+        closeFilterMenus();
+        menu.hidden = wasOpen;
+        return;
+      }
+      const option = e.target.closest('.filter-option');
+      if (option) {
+        filters[option.dataset.group] = option.dataset.value || null;
+        renderChildren();
+        renderGrid();
+        return;
+      }
+      if (e.target.closest('.filter-clear')) {
+        filters = { decade: null, genre: null, format: null };
+        renderChildren();
+        renderGrid();
+      }
+    });
+
+    // Any click elsewhere closes an open filter menu.
+    document.addEventListener('click', function (e) {
+      if (!e.target.closest('.filter-group')) closeFilterMenus();
     });
   }
 

@@ -59,8 +59,10 @@ const DETAIL = (function () {
         '<span class="played-note">' +
           (item.lastPlayed ? 'Last played ' + esc(item.lastPlayed) : 'Not logged as played yet') +
         '</span>' +
-        '<button class="btn btn-quiet refetch-btn" data-row="' + item.rowNumber + '">Re-fetch details</button>' +
+        '<button class="btn btn-quiet refetch-btn" data-row="' + item.rowNumber + '">Re-fetch</button>' +
+        '<button class="btn btn-quiet findmatch-btn" data-row="' + item.rowNumber + '" data-sheet="Albums">Find a match</button>' +
       '</div>' +
+      '<div class="match-panel" hidden></div>' +
       fieldEditorHtml(item, 'catalogueNo', 'Pressing / catalogue number', item.catalogueNo,
         'From your own copy — written straight into the spreadsheet.', 'Read it off the label or sleeve') +
       fieldEditorHtml(item, 'condition', 'Condition', item.condition,
@@ -215,6 +217,62 @@ const DETAIL = (function () {
       .filter(function (a) { return a.rowNumber === rowNumber; })[0];
   }
 
+  /* Searches loosely and shows what it finds, rather than guessing. Automatic
+     matching queries artist and title as separate fields, which cannot match a
+     record catalogued differently — a soundtrack filed under the film, say. A
+     person recognises the right sleeve instantly, so the app offers and Neil
+     decides. */
+  async function findMatch(button) {
+    const panel = button.closest('.played-row').nextElementSibling;
+    const rowNumber = Number(button.dataset.row);
+    panel.hidden = false;
+    panel.innerHTML = '<p class="empty-note">Searching…</p>';
+    button.disabled = true;
+    try {
+      const result = await API.findMatchCandidates({ sheetName: button.dataset.sheet, sourceRow: rowNumber });
+      if (result.error) { panel.innerHTML = '<p class="empty-note">Could not search: ' + esc(result.error) + '</p>'; button.disabled = false; return; }
+      if (!result.candidates.length) {
+        panel.innerHTML = '<p class="empty-note">Nothing found for “' + esc(result.query) + '”.</p>';
+        button.disabled = false; return;
+      }
+      panel.innerHTML =
+        '<p class="match-intro">Searched for “' + esc(result.query) + '”. Pick the one that matches your copy:</p>' +
+        '<div class="match-list">' + result.candidates.map(function (c) {
+          const meta = [c.year, c.country, c.format].filter(Boolean).join(' · ');
+          return '<button class="match-option" data-id="' + esc(c.id) + '" data-row="' + rowNumber + '" data-sheet="' + esc(button.dataset.sheet) + '">' +
+            '<span class="match-thumb">' + (c.thumbnail ? '<img src="' + esc(c.thumbnail) + '" alt="" loading="lazy">' : '') + '</span>' +
+            '<span class="match-text">' +
+              '<span class="match-title">' + esc([c.artist, c.title].filter(Boolean).join(' — ')) + '</span>' +
+              '<span class="match-meta">' + esc(meta) + '</span>' +
+            '</span></button>';
+        }).join('') + '</div>';
+    } catch (err) {
+      panel.innerHTML = '<p class="empty-note">Could not search: ' + esc(err.message) + '</p>';
+    }
+    button.disabled = false;
+  }
+
+  async function chooseMatch(option) {
+    const panel = option.closest('.match-panel');
+    const rowNumber = Number(option.dataset.row);
+    if (!API.getWriteToken()) { panel.innerHTML = '<p class="empty-note">Editor password needed to save a match.</p>'; return; }
+    panel.innerHTML = '<p class="empty-note">Saving…</p>';
+    try {
+      const result = await API.applyMatchCandidate({ sheetName: option.dataset.sheet, sourceRow: rowNumber, releaseId: option.dataset.id });
+      const item = albumRow(rowNumber);
+      if (item) {
+        item.coverArtUrl = result.coverArtUrl || null;
+        item.releaseYear = result.releaseYear || null;
+        item.genre = result.genre || null;
+      }
+      panel.innerHTML = '<p class="match-intro">Matched — ' + (result.trackCount || 0) + ' tracks saved. Reopen to see it.</p>';
+      SEARCH.buildIndices();
+      BROWSE.refresh();
+    } catch (err) {
+      panel.innerHTML = '<p class="empty-note">Could not save: ' + esc(err.message) + '</p>';
+    }
+  }
+
   async function markPlayed(button) {
     const rowNumber = Number(button.dataset.row);
     const note = button.parentElement.querySelector('.played-note');
@@ -269,7 +327,11 @@ const DETAIL = (function () {
       const played = e.target.closest('.played-btn');
       if (played) { markPlayed(played); return; }
       const refetch = e.target.closest('.refetch-btn');
-      if (refetch) reFetch(refetch);
+      if (refetch) { reFetch(refetch); return; }
+      const findBtn = e.target.closest('.findmatch-btn');
+      if (findBtn) { findMatch(findBtn); return; }
+      const option = e.target.closest('.match-option');
+      if (option) chooseMatch(option);
     });
 
     document.getElementById('detail-overlay').addEventListener('keydown', function (e) {

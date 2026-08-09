@@ -269,17 +269,53 @@ a{color:inherit;}
    sideways on its own rather than letting the page do it, which is what
    caused the whole layout to shift horizontally. */
 .child-row{max-width:100%;}
+/* Same reason as above — no overflow context around the filter menus. */
+.filters{overflow:visible;}
 @media (max-width:780px){
   .filters{padding-left:0;padding-right:0;}
   .filter-row{padding:0 1.2rem;overflow-x:auto;flex-wrap:nowrap;justify-content:flex-start;
     scrollbar-width:none;-webkit-overflow-scrolling:touch;}
   .filter-row::-webkit-scrollbar{display:none;}
   .parent{white-space:nowrap;}
-  .child-row{flex-wrap:nowrap;overflow-x:auto;justify-content:flex-start;
-    padding:1rem 1.2rem 1.1rem;scrollbar-width:none;-webkit-overflow-scrolling:touch;}
-  .child-row::-webkit-scrollbar{display:none;}
+  /* Deliberately NOT scrolling: an overflow context clips the absolutely
+     positioned filter menus, leaving a sliver of dropdown below the pill.
+     Three or four pills wrap onto a second line perfectly happily. */
+  .child-row{flex-wrap:wrap;justify-content:flex-start;padding:1rem 1.2rem 1.1rem;}
   .chip-group{flex:none;}
   .chip{white-space:nowrap;}
 }
 /* Nothing should ever make the page itself scroll sideways. */
 html,body{overflow-x:hidden;}
+
+/* ---------- filter pills (eBay pattern) ---------- */
+.filter-group{position:relative;display:inline-flex;flex:none;}
+.filter-pill{display:inline-flex;align-items:center;gap:.45rem;white-space:nowrap;cursor:pointer;
+  background:none;border:1px solid var(--rule);border-radius:100px;padding:.4rem .9rem;
+  font-size:.82rem;color:var(--ink);}
+.filter-pill:hover{border-color:var(--ink);}
+.filter-pill.active{background:var(--ink);border-color:var(--ink);color:#fff;}
+.filter-menu{position:absolute;top:calc(100% + .4rem);left:0;z-index:15;min-width:170px;max-height:260px;
+  overflow-y:auto;background:var(--paper);border:1px solid var(--rule);border-radius:12px;
+  box-shadow:0 12px 30px rgba(0,0,0,.12);padding:.35rem;display:flex;flex-direction:column;}
+.filter-menu[hidden]{display:none;}
+.filter-option{background:none;border:none;text-align:left;cursor:pointer;padding:.5rem .7rem;
+  border-radius:8px;font-size:.85rem;color:var(--ink);white-space:nowrap;}
+.filter-option:hover{background:var(--grey-light);}
+.filter-option.active{font-weight:600;}
+.filter-clear{background:none;border:none;cursor:pointer;font-size:.8rem;color:var(--grey);
+  text-decoration:underline;text-underline-offset:3px;white-space:nowrap;flex:none;}
+.filter-clear:hover{color:var(--ink);}
+
+/* ---------- manual match picker ---------- */
+.match-panel{border-top:1px solid var(--rule);margin-top:1.2rem;padding-top:1.1rem;}
+.match-panel[hidden]{display:none;}
+.match-intro{font-size:.82rem;color:var(--grey);margin:0 0 .8rem;}
+.match-list{display:flex;flex-direction:column;gap:.3rem;}
+.match-option{display:flex;align-items:center;gap:.9rem;text-align:left;cursor:pointer;
+  background:none;border:1px solid transparent;border-radius:10px;padding:.5rem;width:100%;}
+.match-option:hover{border-color:var(--rule);background:var(--grey-light);}
+.match-thumb{width:52px;height:52px;flex:none;background:var(--grey-light);border-radius:4px;overflow:hidden;}
+.match-thumb img{width:100%;height:100%;object-fit:cover;display:block;}
+.match-text{display:flex;flex-direction:column;gap:.15rem;min-width:0;}
+.match-title{font-size:.9rem;font-weight:600;line-height:1.2;overflow-wrap:anywhere;}
+.match-meta{font-size:.75rem;color:var(--grey);}
