@@ -27,10 +27,31 @@ const DETAIL = (function () {
     }).join('');
   }
 
+  /* Rows may carry their own markup (a link, a button), so a pair can opt out
+     of escaping by passing {html: ...}. Everything else is escaped as before. */
   function metaRows(pairs) {
     const rows = pairs.filter(function (p) { return p[1]; })
-      .map(function (p) { return '<dt>' + esc(p[0]) + '</dt><dd>' + esc(p[1]) + '</dd>'; }).join('');
+      .map(function (p) {
+        const value = (p[1] && p[1].html !== undefined) ? p[1].html : esc(p[1]);
+        return '<dt>' + esc(p[0]) + '</dt><dd>' + value + '</dd>';
+      }).join('');
     return rows ? '<div class="detail-meta"><dl>' + rows + '</dl></div>' : '';
+  }
+
+  // "Last played" reads as information with an action attached, rather than a
+  // button competing with the record's own details.
+  function lastPlayedCell(item) {
+    const played = item.lastPlayed;
+    return { html:
+      '<span class="played-cell" data-row="' + item.rowNumber + '">' +
+        '<span class="played-value">' + (played ? esc(played) : 'Never') + '</span> ' +
+        '<button class="linkish played-edit">' + (played ? 'Change' : 'Log a play') + '</button>' +
+        '<span class="played-actions" hidden>' +
+          '<button class="btn btn-small played-today">Played today</button>' +
+          '<input class="played-date" type="date" value="' + esc(played || '') + '">' +
+          '<button class="btn btn-small btn-quiet played-save">Save</button>' +
+        '</span>' +
+      '</span>' };
   }
 
   function fieldEditorHtml(item, field, label, value, hint, placeholder, inputType) {
@@ -51,16 +72,19 @@ const DETAIL = (function () {
      checking the label — and a wrong pressing number reads as authoritative in
      a way a blank field does not. Condition is his existing annotation, kept in
      the column he already uses for it. */
+  function isAlbumSheet(collectionKey) {
+    return collectionKey === 'albums' || collectionKey === 'musicDvds';
+  }
+
   function referenceEditorHtml(item, collectionKey) {
     // Music DVDs are Albums rows, so they get the same editable fields.
-    if (collectionKey !== 'albums' && collectionKey !== 'musicDvds') return '';
-    return '<div class="played-row">' +
-        '<button class="btn played-btn" data-row="' + item.rowNumber + '">Played today</button>' +
-        '<span class="played-note">' +
-          (item.lastPlayed ? 'Last played ' + esc(item.lastPlayed) : 'Not logged as played yet') +
-        '</span>' +
-        '<button class="btn btn-quiet refetch-btn" data-row="' + item.rowNumber + '">Re-fetch</button>' +
-        '<button class="btn btn-quiet findmatch-btn" data-row="' + item.rowNumber + '" data-sheet="Albums">Find a match</button>' +
+    if (!isAlbumSheet(collectionKey)) return '';
+    // Artwork actions sit together, secondary to the record's own information.
+    return '<div class="detail-actions">' +
+        '<span class="detail-actions-label">Artwork &amp; details</span>' +
+        '<button class="btn btn-small btn-quiet findmatch-btn" data-row="' + item.rowNumber + '" data-sheet="Albums">Find a match</button>' +
+        '<button class="btn btn-small btn-quiet refetch-btn" data-row="' + item.rowNumber + '">Re-fetch</button>' +
+        '<span class="played-note"></span>' +
       '</div>' +
       '<div class="match-panel" hidden></div>' +
       fieldEditorHtml(item, 'catalogueNo', 'Pressing / catalogue number', item.catalogueNo,
@@ -71,6 +95,19 @@ const DETAIL = (function () {
         'When this copy came into the collection.', 'yyyy-mm-dd', 'date') +
       fieldEditorHtml(item, 'lastPlayed', 'Last played', item.lastPlayed,
         'Separate from when you acquired it.', 'yyyy-mm-dd', 'date');
+  }
+
+  function buildMetaPairs(item, collectionKey, enrichment) {
+    const pairs = [
+      ['Format', tidyFormat(item.format)],
+      ['Released', enrichment && enrichment.ReleaseYear],
+      ['Genre', enrichment && enrichment.Genre],
+      ['Date in your sheet', item.sheetDate || item.date],
+      ['Discs', item.vinylDiscs],
+      ['From', item.albumTitle]
+    ];
+    if (isAlbumSheet(collectionKey)) pairs.push(['Last played', lastPlayedCell(item)]);
+    return pairs;
   }
 
   function render(item, collectionKey, detail) {
@@ -88,15 +125,7 @@ const DETAIL = (function () {
           '<p class="detail-eyebrow">' + esc(meta.label.replace(/s$/, '')) + '</p>' +
           '<h2 class="detail-title">' + esc(titleOf(item, collectionKey)) + '</h2>' +
           (meta.hasArtist && item.artist ? '<p class="detail-artist">' + esc(item.artist) + '</p>' : '') +
-          metaRows([
-            ['Format', tidyFormat(item.format)],
-            ['Released', enrichment && enrichment.ReleaseYear],
-            ['Genre', enrichment && enrichment.Genre],
-            ['Date in your sheet', item.sheetDate || item.date],
-            ['Discs', item.vinylDiscs],
-            ['Notes', item.reactions],
-            ['From', item.albumTitle]
-          ]) +
+          metaRows(buildMetaPairs(item, collectionKey, enrichment)) +
           referenceEditorHtml(item, collectionKey) +
           (tracks.length ? tracklistHtml(tracks)
             : '<p class="empty-note">No track listing yet.</p>') +
@@ -273,22 +302,25 @@ const DETAIL = (function () {
     }
   }
 
-  async function markPlayed(button) {
-    const rowNumber = Number(button.dataset.row);
-    const note = button.parentElement.querySelector('.played-note');
-    if (!API.getWriteToken()) { note.textContent = 'Editor password needed to log plays.'; return; }
-    button.disabled = true;
-    note.textContent = 'Logging…';
+  async function savePlayed(cell, dateValue) {
+    const rowNumber = Number(cell.dataset.row);
+    const value = cell.querySelector('.played-value');
+    if (!API.getWriteToken()) { value.textContent = 'Editor password needed'; return; }
+    const previous = value.textContent;
+    value.textContent = 'Saving…';
     try {
-      await API.markPlayed({ sheetName: 'Albums', sourceRow: rowNumber });
-      const today = new Date().toISOString().slice(0, 10);
+      await API.markPlayed({ sheetName: 'Albums', sourceRow: rowNumber, date: dateValue });
+      const saved = dateValue || new Date().toISOString().slice(0, 10);
       const item = albumRow(rowNumber);
-      if (item) item.lastPlayed = today;
-      note.textContent = 'Last played ' + today;
+      if (item) item.lastPlayed = saved;
+      value.textContent = saved;
+      cell.querySelector('.played-actions').hidden = true;
+      cell.querySelector('.played-edit').textContent = 'Change';
+      cell.querySelector('.played-edit').hidden = false;
     } catch (err) {
-      note.textContent = 'Could not log that: ' + err.message;
+      value.textContent = previous;
+      cell.querySelector('.played-edit').textContent = 'Could not save';
     }
-    button.disabled = false;
   }
 
   /* Enrichment skips anything already resolved, so a wrong match would keep its
@@ -324,8 +356,21 @@ const DETAIL = (function () {
     document.getElementById('detail-overlay').addEventListener('click', function (e) {
       const save = e.target.closest('.field-save');
       if (save) { saveField(save.closest('.field-edit')); return; }
-      const played = e.target.closest('.played-btn');
-      if (played) { markPlayed(played); return; }
+      const editPlayed = e.target.closest('.played-edit');
+      if (editPlayed) {
+        const cell = editPlayed.closest('.played-cell');
+        cell.querySelector('.played-actions').hidden = false;
+        editPlayed.hidden = true;
+        return;
+      }
+      const today = e.target.closest('.played-today');
+      if (today) { savePlayed(today.closest('.played-cell'), null); return; }
+      const savePlay = e.target.closest('.played-save');
+      if (savePlay) {
+        const cell = savePlay.closest('.played-cell');
+        savePlayed(cell, cell.querySelector('.played-date').value);
+        return;
+      }
       const refetch = e.target.closest('.refetch-btn');
       if (refetch) { reFetch(refetch); return; }
       const findBtn = e.target.closest('.findmatch-btn');

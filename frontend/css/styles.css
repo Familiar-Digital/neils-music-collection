@@ -319,3 +319,34 @@ html,body{overflow-x:hidden;}
 .match-text{display:flex;flex-direction:column;gap:.15rem;min-width:0;}
 .match-title{font-size:.9rem;font-weight:600;line-height:1.2;overflow-wrap:anywhere;}
 .match-meta{font-size:.75rem;color:var(--grey);}
+
+/* ---------- artwork loading ----------
+   A flat grey square reads as "no cover". A slow one should read as "coming",
+   so the placeholder shimmers while loading and the image fades in once
+   decoded. Records genuinely without art never shimmer. */
+.card-art.loading{position:relative;overflow:hidden;}
+.card-art.loading::after{content:'';position:absolute;inset:0;
+  background:linear-gradient(90deg,transparent,rgba(255,255,255,.85),transparent);
+  transform:translateX(-100%);animation:shimmer 1.4s ease-in-out infinite;}
+@keyframes shimmer{100%{transform:translateX(100%);}}
+.card-art img{opacity:0;transition:opacity .45s ease;}
+.card-art img.loaded{opacity:1;}
+.card-art.failed{background:var(--grey-light);}
+@media (prefers-reduced-motion:reduce){
+  .card-art.loading::after{animation:none;}
+  .card-art img{opacity:1;}
+}
+
+/* ---------- detail: last played + actions ---------- */
+.played-cell{display:inline-flex;align-items:center;gap:.5rem;flex-wrap:wrap;}
+.played-actions{display:inline-flex;align-items:center;gap:.4rem;flex-wrap:wrap;}
+.played-actions[hidden]{display:none;}
+.played-date{border:none;border-bottom:1px solid var(--rule);background:none;font-family:var(--font-sans);
+  font-size:.85rem;padding:.15rem 0;color:var(--ink);}
+.played-date:focus{outline:none;border-bottom-color:var(--ink);}
+.btn-small{font-size:.75rem;padding:.28rem .7rem;}
+.detail-actions{display:flex;align-items:center;gap:.5rem;flex-wrap:wrap;
+  border-top:1px solid var(--rule);margin-top:1.6rem;padding-top:1.1rem;}
+.detail-actions-label{font-size:.7rem;letter-spacing:.09em;text-transform:uppercase;color:var(--grey);
+  margin-right:.3rem;}
+.played-note{font-size:.78rem;color:var(--grey);flex-basis:100%;}

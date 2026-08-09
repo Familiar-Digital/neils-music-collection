@@ -42,6 +42,8 @@ const SEARCH = (function () {
       if (filters.format && formatGroup(item.format) !== filters.format) return false;
       if (filters.decade && releaseDecade(item) !== filters.decade) return false;
       if (filters.genre && item.genre !== filters.genre) return false;
+      if (filters.status === 'Needs a match' && item.coverArtUrl) return false;
+      if (filters.status === 'Has artwork' && !item.coverArtUrl) return false;
       return true;
     });
   }

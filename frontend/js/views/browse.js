@@ -1,6 +1,6 @@
 const BROWSE = (function () {
   let currentCollection = 'albums';
-  let filters = { decade: null, genre: null, format: null };
+  let filters = { decade: null, genre: null, format: null, status: null };
 
   function escapeHtml(s) {
     return String(s === null || s === undefined ? '' : s).replace(/[&<>"']/g, function (c) {
@@ -15,12 +15,17 @@ const BROWSE = (function () {
     const label = item.tracks
       ? tidyFormat(item.format) + ' · ' + item.tracks.length + ' track' + (item.tracks.length === 1 ? '' : 's')
       : [tidyFormat(item.format), item.releaseYear].filter(Boolean).join(' · ');
+    /* Covers fade in once decoded rather than snapping from a grey box, and
+       the placeholder shimmers so a slow image reads as loading rather than
+       missing. Genuinely missing art says so, and never shimmers. */
     const art = item.coverArtUrl
-      ? '<img src="' + escapeHtml(item.coverArtUrl) + '" alt="" loading="lazy">'
+      ? '<img src="' + escapeHtml(item.coverArtUrl) + '" alt="" loading="lazy" ' +
+        'onload="this.classList.add(\'loaded\');this.parentNode.classList.remove(\'loading\')" ' +
+        'onerror="this.parentNode.classList.remove(\'loading\');this.parentNode.classList.add(\'failed\')">'
       : '<span class="no-art">No cover<br>found</span>';
     const artistLine = item.tracks ? '' : artist;
     return '<button type="button" class="card" data-row="' + escapeHtml(item.rowNumber) + '" data-collection="' + collectionKey + '">' +
-      '<span class="card-art">' + art + '</span>' +
+      '<span class="card-art' + (item.coverArtUrl ? ' loading' : '') + '">' + art + '</span>' +
       (label ? '<span class="card-label">' + escapeHtml(label) + '</span>' : '') +
       '<span class="card-title">' + escapeHtml(title) + '</span>' +
       (artistLine ? '<span class="card-artist">' + escapeHtml(artistLine) + '</span>' : '') +
@@ -38,6 +43,10 @@ const BROWSE = (function () {
       byAlbum[album].tracks.push(t);
     });
     return Object.keys(byAlbum).sort().map(function (k) { return byAlbum[k]; });
+  }
+
+  function needsMatch(item) {
+    return !item.coverArtUrl;
   }
 
   function itemsInCollection() {
@@ -63,6 +72,14 @@ const BROWSE = (function () {
       { key: 'genre',  label: 'Genre',  values: SEARCH.topValues(pool, function (i) { return i.genre; }, 8) },
       { key: 'format', label: 'Format', values: SEARCH.distinct(pool, function (i) { return formatGroup(i.format); }) }
     ].filter(function (g) { return g.values.length > 1; });
+
+    /* Records the matcher couldn't place are worth working through in one go
+       rather than stumbling on them while browsing, so they get their own
+       filter rather than being buried in the grid. */
+    const needingMatch = pool.filter(needsMatch).length;
+    if (needingMatch) {
+      groups.push({ key: 'status', label: 'Artwork', values: ['Needs a match', 'Has artwork'] });
+    }
 
     const row = document.getElementById('child-row');
     if (!groups.length) {
@@ -128,7 +145,7 @@ const BROWSE = (function () {
 
   function setCollection(key) {
     currentCollection = key;
-    filters = { decade: null, genre: null, format: null };
+    filters = { decade: null, genre: null, format: null, status: null };
     refresh();
   }
 
@@ -178,7 +195,7 @@ const BROWSE = (function () {
         return;
       }
       if (e.target.closest('.filter-clear')) {
-        filters = { decade: null, genre: null, format: null };
+        filters = { decade: null, genre: null, format: null, status: null };
         renderChildren();
         renderGrid();
       }
