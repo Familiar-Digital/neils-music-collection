@@ -37,7 +37,14 @@ function getAlbums() {
       catalogueNo: v[cols.catalogueNo] ? String(v[cols.catalogueNo]).trim() : null,
       dateAcquired: formatDateCell(v[cols.dateAcquired]),
       lastPlayed: formatDateCell(v[cols.lastPlayed]),
-      sheetDate: formatDateCell(v[c.DATE_VINYL]) || formatDateCell(v[c.DATE_CD]) || formatDateCell(v[c.DATE_DVD]),
+      /* Neil's three Date columns are the dates he PLAYED a record — one per
+         format, which is why there are three. The sheet is called "Media I
+         have played". They were previously surfaced as an ambiguous "date in
+         your sheet" because it wasn't clear which they meant. */
+      datePlayed: formatDateCell(v[c.DATE_VINYL]) || formatDateCell(v[c.DATE_CD]) || formatDateCell(v[c.DATE_DVD]),
+      datePlayedVinyl: formatDateCell(v[c.DATE_VINYL]),
+      datePlayedCd: formatDateCell(v[c.DATE_CD]),
+      datePlayedDvd: formatDateCell(v[c.DATE_DVD]),
       vinylAlbums: v[c.VINYL_ALBUMS] || null,
       vinylDiscs: v[c.VINYL_DISCS] || null,
       cdCount: v[c.CD] || null,
@@ -125,7 +132,7 @@ function appendAlbum(data) {
   row[c.TITLE] = data.title || '';
   row[c.FORMAT] = data.format || '';
   row[c.REFERENCE] = data.reference || '';
-  row[c.DATE_VINYL] = data.sheetDate || '';
+  row[c.DATE_VINYL] = data.datePlayed || '';
   const rowNumber = appendRow(SHEET_ALBUMS, row);
   enrichOnDemand(SHEET_ALBUMS, rowNumber);
   return { duplicate: false, rowNumber: rowNumber };

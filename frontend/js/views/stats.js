@@ -64,7 +64,7 @@ const STATS = (function () {
     const albums = allAlbumSheetRows();
     const discs = albums.reduce(function (sum, a) { return sum + (Number(a.vinylDiscs) || 0); }, 0);
     const enriched = albums.filter(function (a) { return a.coverArtUrl; }).length;
-    const played = albums.filter(function (a) { return a.lastPlayed; }).length;
+    const played = albums.filter(function (a) { return a.datePlayed; }).length;
     const cards = [
       ['Albums', STORE.albums.length.toLocaleString()],
       ['Music DVDs', STORE.musicDvds.length.toLocaleString()],
@@ -73,7 +73,7 @@ const STATS = (function () {
       ['Films', STORE.dvds.length.toLocaleString()],
       ['Vinyl discs', discs.toLocaleString()],
       ['With artwork', enriched.toLocaleString()],
-      ['Logged as played', played.toLocaleString()]
+      ['With a play date', played.toLocaleString()]
     ];
     return '<div class="stat-cards">' + cards.map(function (c) {
       return '<div class="stat-card"><span class="n">' + esc(c[1]) + '</span><span class="l">' + esc(c[0]) + '</span></div>';

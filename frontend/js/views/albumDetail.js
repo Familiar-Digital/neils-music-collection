@@ -41,7 +41,7 @@ const DETAIL = (function () {
   // "Last played" reads as information with an action attached, rather than a
   // button competing with the record's own details.
   function lastPlayedCell(item) {
-    const played = item.lastPlayed;
+    const played = item.datePlayed;
     return { html:
       '<span class="played-cell" data-row="' + item.rowNumber + '">' +
         '<span class="played-value">' + (played ? esc(played) : 'Never') + '</span> ' +
@@ -107,9 +107,7 @@ const DETAIL = (function () {
       fieldEditorHtml(item, 'condition', 'Condition', item.condition,
         'Your own notes, e.g. "Noisy", "Side 2 crackly".', 'How does this copy play?') +
       fieldEditorHtml(item, 'dateAcquired', 'Date acquired', item.dateAcquired,
-        'When this copy came into the collection.', 'yyyy-mm-dd', 'date') +
-      fieldEditorHtml(item, 'lastPlayed', 'Last played', item.lastPlayed,
-        'Separate from when you acquired it.', 'yyyy-mm-dd', 'date');
+        'When this copy came into the collection — separate from when you played it.', 'yyyy-mm-dd', 'date');
   }
 
   function buildMetaPairs(item, collectionKey, enrichment) {
@@ -117,11 +115,11 @@ const DETAIL = (function () {
       ['Format', tidyFormat(item.format)],
       ['Released', enrichment && enrichment.ReleaseYear],
       ['Genre', enrichment && enrichment.Genre],
-      ['Date in your sheet', item.sheetDate || item.date],
       ['Discs', item.vinylDiscs],
       ['From', item.albumTitle]
     ];
-    if (isAlbumSheet(collectionKey)) pairs.push(['Last played', lastPlayedCell(item)]);
+    if (isAlbumSheet(collectionKey)) pairs.push(['Date played', lastPlayedCell(item)]);
+    else if (item.date) pairs.push(['Date played', item.date]);
     return pairs;
   }
 
@@ -364,7 +362,7 @@ const DETAIL = (function () {
       await API.markPlayed({ sheetName: 'Albums', sourceRow: rowNumber, date: dateValue });
       const saved = dateValue || new Date().toISOString().slice(0, 10);
       const item = albumRow(rowNumber);
-      if (item) item.lastPlayed = saved;
+      if (item) item.datePlayed = saved;
       value.textContent = saved;
       cell.querySelector('.played-actions').hidden = true;
       cell.querySelector('.played-edit').textContent = 'Change';

@@ -23,7 +23,8 @@ function editableColumnIndex(sheetName, field) {
     if (field === 'format') return ALBUMS_COLS.FORMAT;
     if (field === 'catalogueNo') return appColumnIndex(SHEET_ALBUMS, 'catalogueNo');
     if (field === 'dateAcquired') return appColumnIndex(SHEET_ALBUMS, 'dateAcquired');
-    if (field === 'lastPlayed') return appColumnIndex(SHEET_ALBUMS, 'lastPlayed');
+    // datePlayed is not listed here: which column it belongs in depends on the
+    // record's format, so markPlayed resolves and writes it directly.
     return undefined;
   }
   if (sheetName === SHEET_SINGLES) {
@@ -59,12 +60,29 @@ function updateField(sheetName, sourceRow, field, value) {
    Neil's own Reference column is only ever written by his own typing. */
 
 
-/* "Played today" — the thing Neil has been doing by hand for two years, given a
-   button. Stamps today's date in the app's own Last Played column; his existing
-   date columns are left alone because only he knows whether they mean acquired
-   or played. */
+/* Which of Neil's three date columns a play belongs in. He keeps one per
+   format — vinyl, CD and DVD each have their own — so a play is recorded
+   against the format that was actually played. */
+function playedColumnForFormat(format) {
+  const f = String(format || '');
+  if (/\bcd\b/i.test(f)) return ALBUMS_COLS.DATE_CD;
+  if (/dvd|blu-?ray/i.test(f)) return ALBUMS_COLS.DATE_DVD;
+  return ALBUMS_COLS.DATE_VINYL;   // the default, and what most of the collection is
+}
+
+/* "Played today" writes into Neil's own date column rather than a parallel one
+   the app invented. Those columns already hold two years of play dates, so a
+   second place to record the same fact would immediately disagree with them. */
 function markPlayed(sheetName, sourceRow, dateValue) {
   if (sheetName !== SHEET_ALBUMS) throw new Error('Only albums can be marked as played for now.');
-  const when = dateValue ? String(dateValue) : Utilities.formatDate(new Date(), Session.getScriptTimeZone(), 'yyyy-MM-dd');
-  return updateField(sheetName, sourceRow, 'lastPlayed', when);
+  const row = Number(sourceRow);
+  const album = getAlbums().filter(function (a) { return a.rowNumber === row; })[0];
+  if (!album) throw new Error('Row ' + sourceRow + ' not found.');
+
+  const when = dateValue
+    ? String(dateValue)
+    : Utilities.formatDate(new Date(), Session.getScriptTimeZone(), 'yyyy-MM-dd');
+  const columnIndex = playedColumnForFormat(album.format);
+  getSheet(SHEET_ALBUMS).getRange(row, columnIndex + 1).setValue(when);
+  return { ok: true, sourceRow: row, datePlayed: when };
 }

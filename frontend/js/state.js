@@ -151,7 +151,7 @@ async function loadWishlist() {
    else returns null rather than guessing wrong.
 ----------------------------------------------------------------*/
 function acquiredYear(item) {
-  const raw = item.dateAcquired || item.date;
+  const raw = item.datePlayed || item.date;
   if (!raw) return null;
   const iso = String(raw).match(/^(\d{4})-/);
   if (iso) return Number(iso[1]);
