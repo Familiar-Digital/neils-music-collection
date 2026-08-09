@@ -12,6 +12,7 @@ const SHEET_GAP_SUGGESTIONS = 'Gap_Suggestions';
 const SHEET_WISHLIST = 'Wishlist';
 const SHEET_JOB_LOG = 'Job_Log';
 const SHEET_FORMAT_DECISIONS = 'Format_Decisions';
+const SHEET_ENRICHMENT_COMPILATIONS = 'Enrichment_Compilations';
 
 const HELPER_SHEET_HEADERS = {
   // ReleaseYear and Genre are sourced from MusicBrainz — they don't exist in Neil's
@@ -27,7 +28,11 @@ const HELPER_SHEET_HEADERS = {
   Gap_Suggestions: ['Artist', 'MB_ArtistID', 'SuggestedAlbumTitle', 'ReleaseDate', 'MB_ReleaseGroupID', 'MatchConfidence', 'Status', 'ReviewedAt'],
   Wishlist: ['Artist', 'Title', 'Source', 'AddedAt'],
   Job_Log: ['RunTimestamp', 'JobType', 'ItemsProcessed', 'CallsMade', 'ErrorsCount'],
-  Format_Decisions: ['SheetName', 'SourceRow', 'AppliedValue', 'Status', 'DecidedAt']
+  Format_Decisions: ['SheetName', 'SourceRow', 'AppliedValue', 'Status', 'DecidedAt'],
+  /* Compilations aren't rows in Neil's sheet — they're groups of tracks sharing
+     an album title — so they're keyed by that title rather than a row number. */
+  Enrichment_Compilations: ['CompilationKey', 'Title', 'MB_ReleaseID', 'MatchScore', 'MatchStatus',
+    'CoverArtURL', 'SourceURL', 'ReleaseYear', 'Genre', 'MatchSource', 'CatalogueNumber', 'LastEnrichedAt']
 };
 
 // Fixed column layout for Neil's existing tabs (0-indexed), determined from the live sheet.

@@ -39,7 +39,14 @@ const BROWSE = (function () {
     const byAlbum = {};
     STORE.compilations.forEach(function (t) {
       const album = (t.albumTitle || 'Unfiled').replace(/\s+/g, ' ').trim();
-      if (!byAlbum[album]) byAlbum[album] = { rowNumber: 'comp:' + album, title: album, format: t.format, tracks: [] };
+      if (!byAlbum[album]) {
+        const e = STORE.compilationArt[album] || {};
+        byAlbum[album] = {
+          rowNumber: 'comp:' + album, title: album, format: t.format, tracks: [],
+          coverArtUrl: e.coverArtUrl || null, releaseYear: e.releaseYear || null,
+          genre: e.genre || null, sourceUrl: e.sourceUrl || null
+        };
+      }
       byAlbum[album].tracks.push(t);
     });
     return Object.keys(byAlbum).sort().map(function (k) { return byAlbum[k]; });

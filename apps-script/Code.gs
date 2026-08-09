@@ -57,7 +57,11 @@ const WRITE_ACTIONS = {
   markPlayed: function (data) { return markPlayed(data.sheetName, Number(data.sourceRow), data.date); },
   reEnrich: function (data) { return reEnrichRow(data.sheetName, Number(data.sourceRow)); },
   installNightlyEnrichment: function () { return installNightlyEnrichment(); },
-  applyMatchCandidate: function (d) { return applyMatchCandidate(d.sheetName, Number(d.sourceRow), d.releaseId); },
+  /* No Number() here: a compilation is identified by its title, so coercing
+     turned the key into NaN and every compilation match overwrote one bogus
+     row. Each handler knows what shape its own identifier is. */
+  applyMatchCandidate: function (d) { return applyMatchCandidate(d.sheetName, d.sourceRow, d.releaseId); },
+  removeBogusCompilationRows: function () { return removeBogusCompilationRows(); },
   setDiscogsToken: function (d) { PropertiesService.getScriptProperties().setProperty('DISCOGS_TOKEN', String(d.value)); return { ok: true }; },
   runGapAnalysis: function () { runGapAnalysisBatch(); return getGapStatus(); }
 };

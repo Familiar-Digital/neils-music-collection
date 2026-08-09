@@ -2,6 +2,7 @@ const STORE = {
   albums: [],
   singles: [],
   compilations: [],
+  compilationArt: {},        // enrichment keyed by compilation title
   musicDvds: [],
   dvds: [],
   suggestions: { spelling: [], gaps: [], formats: [] },
@@ -88,6 +89,7 @@ function writeCache() {
         albums: STORE.albums.concat(STORE.musicDvds),
         singles: STORE.singles,
         compilations: STORE.compilations,
+        compilationArt: STORE.compilationArt,
         dvds: STORE.dvds
       }
     }));
@@ -103,6 +105,7 @@ function hydrateFromCache() {
   applyAlbumSplit(data.albums);
   STORE.singles = data.singles || [];
   STORE.compilations = data.compilations || [];
+  STORE.compilationArt = data.compilationArt || {};
   STORE.dvds = data.dvds || [];
   STORE.fromCache = true;
   return true;
@@ -115,9 +118,15 @@ async function loadEssentialData() {
 }
 
 async function loadRemainingData() {
-  const [compilations, dvds] = await Promise.all([API.getCompilations(), API.getDVDs()]);
+  const [compilations, dvds, compilationAlbums] = await Promise.all([
+    API.getCompilations(), API.getDVDs(), API.getCompilationAlbums().catch(function () { return []; })
+  ]);
   STORE.compilations = compilations;
   STORE.dvds = dvds;
+  STORE.compilationArt = {};
+  (compilationAlbums || []).forEach(function (c) {
+    STORE.compilationArt[c.title] = { coverArtUrl: c.coverArtUrl, releaseYear: c.releaseYear, genre: c.genre, sourceUrl: c.sourceUrl };
+  });
   STORE.loaded = true;
   STORE.fromCache = false;
   writeCache();

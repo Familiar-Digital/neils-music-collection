@@ -152,14 +152,37 @@ const DETAIL = (function () {
       '</div>';
   }
 
+  /* Compilations get the same artwork and metadata as anything else. They are
+     keyed by title rather than a row number, since they are a grouping of
+     tracks rather than a row in Neil's sheet — so the match buttons carry the
+     title where an album carries its row. */
   function renderCompilation(album) {
+    const art = (STORE.compilationArt[album.title] || {});
+    const cover = art.coverArtUrl;
+    const matched = !!cover;
+
     document.getElementById('detail-body').innerHTML =
       '<div class="detail-grid">' +
-        '<div class="detail-art"><span class="no-art">Compilation</span></div>' +
+        '<div class="detail-art">' +
+          (cover ? '<img src="' + esc(cover) + '" alt="">' : '<span class="no-art">No cover found</span>') +
+        '</div>' +
         '<div>' +
-          '<p class="detail-eyebrow">Compilation · ' + esc(tidyFormat(album.format)) + '</p>' +
+          '<p class="detail-eyebrow">Compilation</p>' +
           '<h2 class="detail-title">' + esc(album.title) + '</h2>' +
           '<p class="detail-artist">' + album.tracks.length + ' tracks</p>' +
+          metaRows([
+            ['Format', tidyFormat(album.format)],
+            ['Released', art.releaseYear],
+            ['Genre', art.genre]
+          ]) +
+          '<div class="detail-actions">' +
+            '<span class="detail-actions-label">Artwork</span>' +
+            '<button class="btn btn-small btn-quiet findmatch-btn" data-row="' + esc(album.title) + '" data-sheet="Various compilations">' +
+              (matched ? 'Change match' : 'Find a match') + '</button>' +
+            '<span class="played-note"></span>' +
+          '</div>' +
+          '<div class="match-panel" hidden></div>' +
+          (art.sourceUrl ? '<p style="margin-top:1rem"><a class="btn btn-small" href="' + esc(art.sourceUrl) + '" target="_blank" rel="noopener">View on Discogs</a></p>' : '') +
           '<div class="side-heading">Track listing</div>' +
           album.tracks.map(function (t, i) {
             return '<div class="track-row"><span class="n">' + (i + 1) + '</span>' +
@@ -274,7 +297,8 @@ const DETAIL = (function () {
     panel.innerHTML = '<p class="empty-note">Searching…</p>';
     button.disabled = true;
     try {
-      const result = await API.findMatchCandidates({ sheetName: button.dataset.sheet, sourceRow: rowNumber });
+      const key = button.dataset.sheet === 'Various compilations' ? button.dataset.row : rowNumber;
+      const result = await API.findMatchCandidates({ sheetName: button.dataset.sheet, sourceRow: key });
       if (result.error) { panel.innerHTML = '<p class="empty-note">Could not search: ' + esc(result.error) + '</p>'; button.disabled = false; return; }
       if (!result.candidates.length) {
         panel.innerHTML = '<p class="empty-note">Nothing found for “' + esc(result.query) + '”.</p>';
@@ -284,7 +308,7 @@ const DETAIL = (function () {
         '<p class="match-intro">Searched for “' + esc(result.query) + '”. Pick the one that matches your copy:</p>' +
         '<div class="match-list">' + result.candidates.map(function (c) {
           const meta = [c.year, c.country, c.format].filter(Boolean).join(' · ');
-          return '<button class="match-option" data-id="' + esc(c.id) + '" data-row="' + rowNumber + '" data-sheet="' + esc(button.dataset.sheet) + '">' +
+          return '<button class="match-option" data-id="' + esc(c.id) + '" data-row="' + esc(button.dataset.row) + '" data-sheet="' + esc(button.dataset.sheet) + '">' +
             '<span class="match-thumb">' + (c.thumbnail ? '<img src="' + esc(c.thumbnail) + '" alt="" loading="lazy">' : '') + '</span>' +
             '<span class="match-text">' +
               '<span class="match-title">' + esc([c.artist, c.title].filter(Boolean).join(' — ')) + '</span>' +
@@ -303,7 +327,19 @@ const DETAIL = (function () {
     if (!API.getWriteToken()) { panel.innerHTML = '<p class="empty-note">Editor password needed to save a match.</p>'; return; }
     panel.innerHTML = '<p class="empty-note">Saving…</p>';
     try {
-      const result = await API.applyMatchCandidate({ sheetName: option.dataset.sheet, sourceRow: rowNumber, releaseId: option.dataset.id });
+      const isCompilation = option.dataset.sheet === 'Various compilations';
+      const key = isCompilation ? option.dataset.row : rowNumber;
+      const result = await API.applyMatchCandidate({ sheetName: option.dataset.sheet, sourceRow: key, releaseId: option.dataset.id });
+      if (isCompilation) {
+        STORE.compilationArt[key] = {
+          coverArtUrl: result.coverArtUrl, releaseYear: result.releaseYear,
+          genre: result.genre, sourceUrl: STORE.compilationArt[key] && STORE.compilationArt[key].sourceUrl
+        };
+        panel.innerHTML = '<p class="match-intro">Matched. Reopen to see it.</p>';
+        SEARCH.buildIndices();
+        BROWSE.refresh();
+        return;
+      }
       const item = albumRow(rowNumber);
       if (item) {
         item.coverArtUrl = result.coverArtUrl || null;

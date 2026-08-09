@@ -96,6 +96,14 @@ function getWishlist() {
    which compilations feature this artist. Both are grouped here rather than in
    the browser so the app doesn't have to reshape 3,000 rows on every load.
 --------------------------------------------------------------------------- */
+function compilationEnrichmentLookup() {
+  const map = {};
+  readHelperTab(SHEET_ENRICHMENT_COMPILATIONS).forEach(function (r) {
+    map[String(r.CompilationKey)] = r;
+  });
+  return map;
+}
+
 function getCompilationAlbums() {
   const byAlbum = {};
   getCompilations().forEach(function (t) {
@@ -103,9 +111,22 @@ function getCompilationAlbums() {
     if (!byAlbum[album]) byAlbum[album] = { title: album, format: t.format, tracks: [] };
     byAlbum[album].tracks.push({ artist: t.artist, title: t.title, rowNumber: t.rowNumber });
   });
+  const enrichment = compilationEnrichmentLookup();
   return Object.keys(byAlbum).sort().map(function (key) {
     const entry = byAlbum[key];
-    return { title: entry.title, format: entry.format, trackCount: entry.tracks.length, tracks: entry.tracks };
+    const e = enrichment[key] || {};
+    return {
+      title: entry.title,
+      format: entry.format,
+      trackCount: entry.tracks.length,
+      tracks: entry.tracks,
+      coverArtUrl: e.CoverArtURL || null,
+      releaseYear: e.ReleaseYear || null,
+      genre: e.Genre || null,
+      matchStatus: e.MatchStatus || null,
+      matchSource: e.MatchSource || null,
+      sourceUrl: e.SourceURL || null
+    };
   });
 }
 

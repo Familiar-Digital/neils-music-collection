@@ -14,12 +14,54 @@
 
 function sourceRowItem(sheetName, sourceRow) {
   const rows = sheetName === SHEET_ALBUMS ? getAlbums() : getSingles();
+  // Albums and singles are identified by row number; coerce here, where we know that.
   const item = rows.filter(function (r) { return r.rowNumber === Number(sourceRow); })[0];
   if (!item) throw new Error('Row ' + sourceRow + ' not found in ' + sheetName);
   return item;
 }
 
+/* Compilations are identified by their title, not a row number, because they
+   are a grouping of tracks rather than a row in Neil's sheet. */
+function findCompilationCandidates(compilationKey, overrideQuery) {
+  const key = String(compilationKey).replace(/\s+/g, ' ').trim();
+  const query = overrideQuery || key;
+  let candidates = [], error = null;
+  try {
+    // No format hint: a compilation's tracks carry mixed formats, and guessing
+    // one would exclude the right release.
+    candidates = discogsSearchCandidates(query, '', 8);
+  } catch (err) {
+    error = err.message;
+  }
+  return { query: query, candidates: candidates, error: error };
+}
+
+function applyCompilationMatch(compilationKey, releaseId) {
+  const key = String(compilationKey).replace(/\s+/g, ' ').trim();
+  const detail = discogsReleaseDetail(releaseId);
+  upsertHelperRow(SHEET_ENRICHMENT_COMPILATIONS, 'CompilationKey', key, {
+    Title: key,
+    MB_ReleaseID: String(releaseId),
+    MatchScore: 100,
+    MatchStatus: 'Enriched',
+    CoverArtURL: detail.coverArtUrl || '',
+    SourceURL: detail.url ? 'https://www.discogs.com' + detail.url : '',
+    ReleaseYear: detail.year || '',
+    Genre: detail.genre || '',
+    MatchSource: 'Discogs (chosen)',
+    CatalogueNumber: detail.catalogueNumber || '',
+    LastEnrichedAt: new Date()
+  });
+  return {
+    ok: true,
+    coverArtUrl: detail.coverArtUrl || '',
+    releaseYear: detail.year || '',
+    genre: detail.genre || ''
+  };
+}
+
 function findMatchCandidates(sheetName, sourceRow, overrideQuery) {
+  if (sheetName === SHEET_COMPILATIONS) return findCompilationCandidates(sourceRow, overrideQuery);
   const item = sourceRowItem(sheetName, sourceRow);
   const title = sheetName === SHEET_ALBUMS ? item.title : String(item.titles || '').split('/')[0].trim();
   // Everything as one phrase: the whole point is not to assume which part of
@@ -40,6 +82,7 @@ function findMatchCandidates(sheetName, sourceRow, overrideQuery) {
    automatic path would have produced comes from the release itself, so a
    hand-picked match is as complete as a matched one. */
 function applyMatchCandidate(sheetName, sourceRow, releaseId) {
+  if (sheetName === SHEET_COMPILATIONS) return applyCompilationMatch(sourceRow, releaseId);
   const item = sourceRowItem(sheetName, sourceRow);
   const detail = discogsReleaseDetail(releaseId);
   const helperSheet = sheetName === SHEET_ALBUMS ? SHEET_ENRICHMENT_ALBUMS : SHEET_ENRICHMENT_SINGLES;
@@ -103,4 +146,20 @@ function getUnmatched(sheetName) {
       status: byRow[r.rowNumber] || 'NotChecked'
     };
   });
+}
+
+
+/* One-off tidy-up for rows written under a NaN key before the router stopped
+   coercing compilation titles to numbers. */
+function removeBogusCompilationRows() {
+  const sheet = getSheet(SHEET_ENRICHMENT_COMPILATIONS);
+  const last = sheet.getLastRow();
+  if (last < 2) return { removed: 0 };
+  const keys = sheet.getRange(2, 1, last - 1, 1).getValues();
+  let removed = 0;
+  for (let i = keys.length - 1; i >= 0; i--) {
+    const k = String(keys[i][0]).trim();
+    if (k === 'NaN' || k === '') { sheet.deleteRow(i + 2); removed++; }
+  }
+  return { removed: removed };
 }
