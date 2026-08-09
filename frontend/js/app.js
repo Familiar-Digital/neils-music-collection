@@ -26,6 +26,8 @@
     if (name === 'stats') STATS.render();
   }
 
+  window.APP = { showView: showView, showHome: showHome };
+
   /* ---------------- overlays ---------------- */
   function openMenu() { document.getElementById('menu-overlay').hidden = false; }
   function closeMenu() { document.getElementById('menu-overlay').hidden = true; }
@@ -272,6 +274,9 @@
     BROWSE.renderCategoryLists();
     SEARCH.buildIndices();
     BROWSE.refresh();
+    // Compilations and films arrive in the second wave, so a statistics page
+    // opened before then would report zero for both and stay wrong.
+    if (document.getElementById('stats-view').classList.contains('is-active')) STATS.render();
     document.getElementById('menu-stats').textContent =
       COLLECTIONS.map(function (c) { return STORE[c.key].length.toLocaleString() + ' ' + c.label.toLowerCase(); }).join(' · ');
   }
@@ -280,6 +285,7 @@
     DETAIL.init();
     ADD_FORM.init();
     SUGGESTIONS_VIEW.init();
+    STATS.init();
     hideGate();
 
     BROWSE.init();

@@ -150,6 +150,15 @@ const BROWSE = (function () {
 
   function refresh() { renderParents(); renderChildren(); renderGrid(); renderRecent(); }
 
+  /* Lets another view (the statistics page) send you here already filtered,
+     which is the difference between a number and a way in. */
+  function applyFilter(key, value) {
+    if (!(key in filters)) return;
+    filters[key] = value;
+    renderChildren();
+    renderGrid();
+  }
+
   function setCollection(key) {
     currentCollection = key;
     filters = { decade: null, genre: null, format: null, status: null };
@@ -214,6 +223,6 @@ const BROWSE = (function () {
     });
   }
 
-  return { init, refresh, renderRecent, setCollection, cardHtml, escapeHtml, renderCategoryLists,
+  return { init, refresh, renderRecent, setCollection, applyFilter, cardHtml, escapeHtml, renderCategoryLists,
     get currentCollection() { return currentCollection; } };
 })();

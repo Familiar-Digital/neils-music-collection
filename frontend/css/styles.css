@@ -366,3 +366,44 @@ html,body{overflow-x:hidden;}
 .track-row.linked{cursor:pointer;}
 .track-row.linked .t{text-decoration:underline;text-underline-offset:3px;text-decoration-color:var(--rule);}
 .track-row.linked:hover .t{text-decoration-color:var(--ink);}
+
+/* ---------- statistics ----------
+   Rebuilt after an earlier append to this file was overwritten, which shipped
+   the page unstyled: the number and its label are separate spans, so without
+   a layout they ran together as "533Albums". */
+.stat-cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));
+  gap:1px;background:var(--rule);border:1px solid var(--rule);margin-bottom:2.5rem;}
+.stat-card{display:flex;flex-direction:column;gap:.25rem;align-items:flex-start;text-align:left;
+  background:var(--paper);border:none;padding:1.15rem 1rem;cursor:pointer;font-family:inherit;
+  transition:background .15s ease;}
+.stat-card[disabled]{cursor:default;}
+.stat-card:not([disabled]):hover{background:var(--grey-light);}
+.stat-card:focus-visible{outline:2px solid var(--ink);outline-offset:-2px;}
+.stat-n{font-size:1.85rem;font-weight:700;letter-spacing:-.03em;line-height:1;color:var(--ink);}
+.stat-l{font-size:.66rem;letter-spacing:.09em;text-transform:uppercase;color:var(--grey);}
+
+.stat-head{font-size:.7rem;letter-spacing:.1em;text-transform:uppercase;color:var(--grey);
+  border-top:1px solid var(--ink);padding-top:.7rem;margin:2.5rem 0 1.1rem;font-weight:600;}
+
+.stat-bars{display:flex;flex-direction:column;gap:.15rem;}
+.stat-row{display:grid;grid-template-columns:minmax(84px,1.5fr) minmax(40px,3fr) auto 2.6rem;
+  align-items:center;gap:.9rem;width:100%;background:none;border:none;cursor:pointer;
+  font-family:inherit;text-align:left;padding:.42rem .4rem;border-radius:6px;
+  transition:background .15s ease;}
+.stat-row[disabled]{cursor:default;}
+.stat-row:not([disabled]):hover{background:var(--grey-light);}
+.stat-row:not([disabled]):hover .stat-fill{background:var(--ink);}
+.stat-row:focus-visible{outline:2px solid var(--ink);outline-offset:2px;}
+.stat-label{font-size:.86rem;color:var(--ink);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.stat-track{height:7px;background:var(--grey-light);position:relative;border-radius:4px;overflow:hidden;}
+.stat-fill{position:absolute;inset:0 auto 0 0;background:var(--ink);border-radius:4px;
+  transition:background .15s ease;}
+.stat-count{font-size:.85rem;font-variant-numeric:tabular-nums;color:var(--ink);}
+.stat-share{font-size:.72rem;color:var(--grey);font-variant-numeric:tabular-nums;text-align:right;}
+
+@media (max-width:600px){
+  .stat-cards{grid-template-columns:repeat(2,minmax(0,1fr));}
+  .stat-n{font-size:1.5rem;}
+  .stat-row{grid-template-columns:minmax(72px,1.4fr) minmax(30px,2fr) auto 2.3rem;gap:.6rem;}
+  .stat-label{font-size:.8rem;}
+}
