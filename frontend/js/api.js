@@ -51,6 +51,7 @@ const API = (function () {
     getCompilationAlbums: function () { return get('getCompilationAlbums'); },
     findMatchCandidates: function (p) { return get('findMatchCandidates', p); },
     getUnmatched: function (p) { return get('getUnmatched', p); },
+    artworkUploadsAvailable: function () { return get('artworkUploadsAvailable'); },
 
     addAlbum: function (data) { return post('addAlbum', data); },
     addSingle: function (data) { return post('addSingle', data); },
@@ -65,6 +66,7 @@ const API = (function () {
     markPlayed: function (data) { return post('markPlayed', data); },
     reEnrich: function (data) { return post('reEnrich', data); },
     applyMatchCandidate: function (data) { return post('applyMatchCandidate', data); },
+    uploadArtwork: function (data) { return post('uploadArtwork', data); },
     setGapThreshold: function (data) { return post('setGapThreshold', data); },
     runGapAnalysis: function () { return post('runGapAnalysis', {}); },
 

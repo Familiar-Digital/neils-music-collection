@@ -20,7 +20,8 @@ const READ_ACTIONS = {
   findMatchCandidates: function (p) { return findMatchCandidates(p.sheetName, p.sourceRow, p.query); },
   getUnmatched: function (p) { return getUnmatched(p.sheetName); },
   getCompilationAlbums: getCompilationAlbums,
-  listTriggers: listTriggers
+  listTriggers: listTriggers,
+  artworkUploadsAvailable: artworkUploadsAvailable
 };
 
 function doGet(e) {
@@ -62,6 +63,8 @@ const WRITE_ACTIONS = {
      row. Each handler knows what shape its own identifier is. */
   applyMatchCandidate: function (d) { return applyMatchCandidate(d.sheetName, d.sourceRow, d.releaseId); },
   removeBogusCompilationRows: function () { return removeBogusCompilationRows(); },
+  uploadArtwork: function (d) { return uploadArtwork(d); },
+  setGithubToken: function (d) { PropertiesService.getScriptProperties().setProperty('GITHUB_TOKEN', String(d.value)); return { ok: true }; },
   setDiscogsToken: function (d) { PropertiesService.getScriptProperties().setProperty('DISCOGS_TOKEN', String(d.value)); return { ok: true }; },
   runGapAnalysis: function () { runGapAnalysisBatch(); return getGapStatus(); }
 };

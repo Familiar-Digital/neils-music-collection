@@ -120,8 +120,13 @@ const DETAIL = (function () {
           (matched ? 'Change cover &amp; details' : 'Find cover &amp; details') + '</button>' +
         (matched ? '' :
           '<button class="btn btn-small btn-quiet refetch-btn" data-row="' + item.rowNumber + '">Try again automatically</button>') +
+        '<label class="btn btn-small btn-quiet upload-label">' +
+          (matched ? 'Use my own photo' : 'Photograph the sleeve') +
+          '<input class="upload-input" type="file" accept="image/*" data-row="' + item.rowNumber + '" data-sheet="Albums" hidden>' +
+        '</label>' +
         '<span class="played-note"></span>' +
       '</div>' +
+      '<div class="upload-panel" hidden></div>' +
       '<div class="match-panel" hidden></div>' +
       fieldEditorHtml(item, 'catalogueNo', 'Pressing / catalogue number', item.catalogueNo,
         'From your own copy — written straight into the spreadsheet.', 'Read it off the label or sleeve') +
@@ -451,6 +456,11 @@ const DETAIL = (function () {
       if (option) { chooseMatch(option); return; }
       const linked = e.target.closest('.track-row.linked');
       if (linked) open('compilations', 'comp:' + linked.dataset.compilation);
+    });
+
+    document.getElementById('detail-overlay').addEventListener('change', function (e) {
+      const input = e.target.closest('.upload-input');
+      if (input) handleUpload(input);
     });
 
     document.getElementById('detail-overlay').addEventListener('keydown', function (e) {

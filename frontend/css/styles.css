@@ -412,3 +412,12 @@ html,body{overflow-x:hidden;}
 .deadwax-group{border-top:1px solid var(--rule);margin-top:1.6rem;padding-top:1.1rem;}
 .deadwax-intro{font-size:.78rem;color:var(--grey);margin:0 0 .9rem;}
 .deadwax-group .field-edit{border-top:none;margin-top:0;padding-top:.6rem;}
+
+/* ---------- artwork upload ---------- */
+.upload-label{cursor:pointer;display:inline-flex;align-items:center;}
+.upload-panel{margin-top:1rem;}
+.upload-panel[hidden]{display:none;}
+.upload-preview{display:flex;gap:1rem;align-items:flex-start;}
+.upload-preview img{width:96px;height:96px;object-fit:cover;border-radius:4px;flex:none;
+  background:var(--grey-light);}
+.upload-status{font-size:.82rem;color:var(--grey);margin:0;}
