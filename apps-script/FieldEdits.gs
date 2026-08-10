@@ -23,6 +23,8 @@ function editableColumnIndex(sheetName, field) {
     if (field === 'format') return ALBUMS_COLS.FORMAT;
     if (field === 'catalogueNo') return appColumnIndex(SHEET_ALBUMS, 'catalogueNo');
     if (field === 'dateAcquired') return appColumnIndex(SHEET_ALBUMS, 'dateAcquired');
+    if (field === 'deadWax') return appColumnIndex(SHEET_ALBUMS, 'deadWax');
+    if (field === 'deadWaxMeaning') return appColumnIndex(SHEET_ALBUMS, 'deadWaxMeaning');
     // datePlayed is not listed here: which column it belongs in depends on the
     // record's format, so markPlayed resolves and writes it directly.
     return undefined;

@@ -81,6 +81,23 @@ const DETAIL = (function () {
       '</svg><span>Loading</span></div>';
   }
 
+  // Etchings live in the run-out groove of a record, so these fields appear for
+  // vinyl only — there is no dead wax on a CD or a DVD.
+  function isVinyl(item) {
+    return formatGroup(item.format) === 'Vinyl';
+  }
+
+  function deadWaxHtml(item) {
+    if (!isVinyl(item)) return '';
+    return '<div class="deadwax-group">' +
+        '<p class="deadwax-intro">Etchings in the run-out groove — an engineer\'s signature, a message, a doodle.</p>' +
+        fieldEditorHtml(item, 'deadWax', 'Dead wax etching', item.deadWax,
+          'Exactly what is scratched there.', 'e.g. PORKY PRIME CUT, or a smiley') +
+        fieldEditorHtml(item, 'deadWaxMeaning', 'What it means', item.deadWaxMeaning,
+          'Who or what it refers to, if you know.', 'e.g. George Peckham, mastering engineer') +
+      '</div>';
+  }
+
   function isAlbumSheet(collectionKey) {
     return collectionKey === 'albums' || collectionKey === 'musicDvds';
   }
@@ -92,11 +109,15 @@ const DETAIL = (function () {
     /* A record that already has artwork doesn't need "find" — it needs
        "change this if it's wrong". Re-fetch only makes sense where nothing was
        found, since it repeats the search that already failed to place it. */
+    // Named for what it actually does. It was labelled "Artwork", but choosing a
+    // match brings back the cover, release year, genre, catalogue number and the
+    // full track listing — so "artwork" undersold it, and made the button look
+    // redundant on a record that already had a cover.
     const matched = !!item.coverArtUrl;
     return '<div class="detail-actions">' +
-        '<span class="detail-actions-label">Artwork</span>' +
+        '<span class="detail-actions-label">Record details</span>' +
         '<button class="btn btn-small btn-quiet findmatch-btn" data-row="' + item.rowNumber + '" data-sheet="Albums">' +
-          (matched ? 'Change match' : 'Find a match') + '</button>' +
+          (matched ? 'Change cover &amp; details' : 'Find cover &amp; details') + '</button>' +
         (matched ? '' :
           '<button class="btn btn-small btn-quiet refetch-btn" data-row="' + item.rowNumber + '">Try again automatically</button>') +
         '<span class="played-note"></span>' +
@@ -107,7 +128,8 @@ const DETAIL = (function () {
       fieldEditorHtml(item, 'condition', 'Condition', item.condition,
         'Your own notes, e.g. "Noisy", "Side 2 crackly".', 'How does this copy play?') +
       fieldEditorHtml(item, 'dateAcquired', 'Date acquired', item.dateAcquired,
-        'When this copy came into the collection — separate from when you played it.', 'yyyy-mm-dd', 'date');
+        'When this copy came into the collection — separate from when you played it.', 'yyyy-mm-dd', 'date') +
+      deadWaxHtml(item);
   }
 
   function buildMetaPairs(item, collectionKey, enrichment) {
@@ -174,9 +196,9 @@ const DETAIL = (function () {
             ['Genre', art.genre]
           ]) +
           '<div class="detail-actions">' +
-            '<span class="detail-actions-label">Artwork</span>' +
+            '<span class="detail-actions-label">Record details</span>' +
             '<button class="btn btn-small btn-quiet findmatch-btn" data-row="' + esc(album.title) + '" data-sheet="Various compilations">' +
-              (matched ? 'Change match' : 'Find a match') + '</button>' +
+              (matched ? 'Change cover &amp; details' : 'Find cover &amp; details') + '</button>' +
             '<span class="played-note"></span>' +
           '</div>' +
           '<div class="match-panel" hidden></div>' +

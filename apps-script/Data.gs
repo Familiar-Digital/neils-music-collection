@@ -22,9 +22,11 @@ function getAlbums() {
   const cols = {
     catalogueNo: appColumnIndex(SHEET_ALBUMS, 'catalogueNo'),
     dateAcquired: appColumnIndex(SHEET_ALBUMS, 'dateAcquired'),
-    lastPlayed: appColumnIndex(SHEET_ALBUMS, 'lastPlayed')
+    lastPlayed: appColumnIndex(SHEET_ALBUMS, 'lastPlayed'),
+    deadWax: appColumnIndex(SHEET_ALBUMS, 'deadWax'),
+    deadWaxMeaning: appColumnIndex(SHEET_ALBUMS, 'deadWaxMeaning')
   };
-  const width = Math.max(14, cols.catalogueNo + 1, cols.dateAcquired + 1, cols.lastPlayed + 1);
+  const width = Math.max.apply(null, [14].concat(Object.keys(cols).map(function (k) { return cols[k] + 1; })));
   return readDataRows(SHEET_ALBUMS, width, 2).map(function (r) {
     const v = r.values;
     const e = enrichment[r.rowNumber] || {};
@@ -35,6 +37,8 @@ function getAlbums() {
       format: String(v[c.FORMAT] || '').trim(),
       condition: v[c.REFERENCE] ? String(v[c.REFERENCE]).trim() : null,
       catalogueNo: v[cols.catalogueNo] ? String(v[cols.catalogueNo]).trim() : null,
+      deadWax: v[cols.deadWax] ? String(v[cols.deadWax]).trim() : null,
+      deadWaxMeaning: v[cols.deadWaxMeaning] ? String(v[cols.deadWaxMeaning]).trim() : null,
       dateAcquired: formatDateCell(v[cols.dateAcquired]),
       lastPlayed: formatDateCell(v[cols.lastPlayed]),
       /* Neil's three Date columns are the dates he PLAYED a record — one per

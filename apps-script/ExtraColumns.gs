@@ -28,7 +28,14 @@
 const APP_COLUMNS = {
   catalogueNo: 'Catalogue No',
   dateAcquired: 'Date Acquired',
-  lastPlayed: 'Last Played'
+  lastPlayed: 'Last Played',
+  /* The run-out groove between the last track and the label, where the
+     mastering engineer often scratched a signature or a message — "PORKY PRIME
+     CUT" for George Peckham, a smiley face, a joke. Two columns because the
+     etching and what it means are different things: the etching is what is
+     physically there, the meaning is what it refers to. Vinyl only. */
+  deadWax: 'Dead Wax',
+  deadWaxMeaning: 'Dead Wax Meaning'
 };
 
 // Returns the 0-based index of a header on a sheet, or -1.

@@ -407,3 +407,8 @@ html,body{overflow-x:hidden;}
   .stat-row{grid-template-columns:minmax(72px,1.4fr) minmax(30px,2fr) auto 2.3rem;gap:.6rem;}
   .stat-label{font-size:.8rem;}
 }
+
+/* ---------- dead wax ---------- */
+.deadwax-group{border-top:1px solid var(--rule);margin-top:1.6rem;padding-top:1.1rem;}
+.deadwax-intro{font-size:.78rem;color:var(--grey);margin:0 0 .9rem;}
+.deadwax-group .field-edit{border-top:none;margin-top:0;padding-top:.6rem;}
