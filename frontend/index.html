@@ -279,6 +279,28 @@
   </div>
 </div>
 
+<!-- ============ CROP ============ -->
+<div class="overlay crop-overlay" id="crop-overlay" hidden>
+  <div class="overlay-bar">
+    <button class="menu-btn" id="crop-cancel">
+      <span class="bars close"><span></span><span></span></span><span class="txt">Cancel</span>
+    </button>
+    <h2 class="wordmark">Crop</h2>
+    <span></span>
+  </div>
+  <div class="crop-body">
+    <p class="crop-hint" id="crop-hint"></p>
+    <div class="crop-frame" id="crop-frame">
+      <canvas id="crop-canvas"></canvas>
+    </div>
+    <label class="crop-zoom-row">
+      <span>Zoom</span>
+      <input id="crop-zoom" type="range" min="1" max="4" step="0.01" value="1">
+    </label>
+    <button class="btn crop-confirm" id="crop-confirm">Use this crop</button>
+  </div>
+</div>
+
 <!-- ============ DETAIL ============ -->
 <div class="overlay detail-overlay" id="detail-overlay" hidden>
   <div class="overlay-bar">

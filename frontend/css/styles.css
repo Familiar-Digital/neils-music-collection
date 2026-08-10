@@ -421,3 +421,29 @@ html,body{overflow-x:hidden;}
 .upload-preview img{width:96px;height:96px;object-fit:cover;border-radius:4px;flex:none;
   background:var(--grey-light);}
 .upload-status{font-size:.82rem;color:var(--grey);margin:0;}
+
+/* ---------- crop ---------- */
+.crop-overlay{z-index:40;background:var(--ink);color:#fff;}
+.crop-overlay .overlay-bar{color:#fff;}
+.crop-overlay .wordmark{font-family:var(--font-sans);font-size:.78rem;letter-spacing:.09em;
+  text-transform:uppercase;font-weight:600;}
+.crop-body{max-width:520px;margin:0 auto;padding:0 var(--pad) 3rem;display:flex;flex-direction:column;
+  align-items:center;gap:1.1rem;}
+.crop-hint{font-size:.75rem;letter-spacing:.04em;color:rgba(255,255,255,.6);margin:0;text-align:center;}
+/* Square by construction, so what is shown is exactly what is saved. */
+.crop-frame{position:relative;width:100%;max-width:420px;aspect-ratio:1;overflow:hidden;
+  background:#000;touch-action:none;cursor:grab;border:1px solid rgba(255,255,255,.2);}
+.crop-frame:active{cursor:grabbing;}
+.crop-frame canvas{display:block;}
+/* Thirds guide, so a sleeve can be squared up against something. */
+.crop-frame::after{content:'';position:absolute;inset:0;pointer-events:none;
+  background:
+    linear-gradient(to right,transparent 33.2%,rgba(255,255,255,.25) 33.2%,rgba(255,255,255,.25) 33.5%,transparent 33.5%,
+      transparent 66.4%,rgba(255,255,255,.25) 66.4%,rgba(255,255,255,.25) 66.7%,transparent 66.7%),
+    linear-gradient(to bottom,transparent 33.2%,rgba(255,255,255,.25) 33.2%,rgba(255,255,255,.25) 33.5%,transparent 33.5%,
+      transparent 66.4%,rgba(255,255,255,.25) 66.4%,rgba(255,255,255,.25) 66.7%,transparent 66.7%);}
+.crop-zoom-row{display:flex;align-items:center;gap:.9rem;width:100%;max-width:420px;
+  font-size:.7rem;letter-spacing:.09em;text-transform:uppercase;color:rgba(255,255,255,.6);}
+.crop-zoom-row input{flex:1;accent-color:#fff;}
+.crop-confirm{border-color:rgba(255,255,255,.6);color:#fff;}
+.crop-confirm:hover{background:#fff;color:var(--ink);}
